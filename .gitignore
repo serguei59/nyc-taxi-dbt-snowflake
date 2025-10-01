@@ -215,3 +215,4 @@ profiles.yml
 logs/
 target/
 dbt_packages/
+.env
