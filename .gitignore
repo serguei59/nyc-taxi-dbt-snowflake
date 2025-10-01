@@ -143,6 +143,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+venv-nyc-taxi/
 
 # Spyder project settings
 .spyderproject
@@ -205,3 +206,12 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+
+# Fichiers sensibles dbt
+profiles.yml
+
+# Dossiers dbt
+logs/
+target/
+dbt_packages/
