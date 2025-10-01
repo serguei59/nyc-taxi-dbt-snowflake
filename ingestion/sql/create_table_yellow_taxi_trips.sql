@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS RAW.yellow_taxi_trips (
+    vendor_id STRING,
+    pickup_datetime TIMESTAMP,
+    dropoff_datetime TIMESTAMP,
+    passenger_count INTEGER,
+    trip_distance FLOAT,
+    rate_code_id INTEGER,
+    store_and_fwd_flag STRING,
+    pu_location_id INTEGER,
+    do_location_id INTEGER,
+    payment_type INTEGER,
+    fare_amount FLOAT,
+    extra FLOAT,
+    mta_tax FLOAT,
+    tip_amount FLOAT,
+    tolls_amount FLOAT,
+    improvement_surcharge FLOAT,
+    total_amount FLOAT,
+    congestion_surcharge FLOAT
+);
