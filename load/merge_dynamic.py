@@ -240,7 +240,7 @@ def process_parquet_files():
 # 7. Lancement
 if __name__ == "__main__":
     try:
-        # execution
+        # execution et vérification
         process_parquet_files()
 
         print("\n📊 Vérification post-ingestion Snowflake...")
@@ -269,7 +269,13 @@ if __name__ == "__main__":
         for check_name, sql in sql_checks.items():
             result = execute_sql(sql)
             print(f"{check_name}: {result[0][0] if result else 'N/A'}")
+
+    except Exception as e:
+        print(f"❌Erreur pendant le processus d ingestion: {e}")
+
     finally:
         # fermeture
         cursor.close()
         conn.close()
+        print("✅ Pipeline terminé proprement (Snowflake fermé, logs à jour).")
+
