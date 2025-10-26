@@ -178,7 +178,7 @@ def update_table_schema(df: pd.DataFrame, table_name: str, verbose: bool = False
 
 
 
-# 8. Traitement des fichiers parquet
+# 7. Traitement des fichiers parquet
 def process_parquet_files():
     table_final = "YELLOW_TAXI_TRIPS"
     table_buffer = "BUFFER_YELLOW_TAXI_TRIPS"
@@ -194,6 +194,26 @@ def process_parquet_files():
 
         # Hamonisation des colonnes (éviter le bug de casse)
         df.columns = [col.upper() for col in df.columns]
+
+        # 🧹 Suppression des doublons techniques avant upload
+        before = len(df)
+        df = df.drop_duplicates(
+            subset=[
+                "TPEP_PICKUP_DATETIME",
+                "TPEP_DROPOFF_DATETIME",
+                "VENDORID",
+                "PULOCATIONID",
+                "DOLOCATIONID",
+                "PASSENGER_COUNT",
+                "TOTAL_AMOUNT",
+                "TRIP_DISTANCE"
+            ],
+            keep="first"
+        )
+        removed = before - len(df)
+        print(f"🧹 {removed} duplicate rows removed before upload.")
+        logging.info(f"{removed} duplicates removed from {file.name}")
+
 
         # Création ou mise à jour des schémas
         create_table_if_not_exists(df, table_final)
@@ -239,7 +259,7 @@ def process_parquet_files():
         execute_sql(f"TRUNCATE TABLE {table_buffer}")
         print("🔁 BUFFER vidé\n")
 
-# 9. Save to CSV for traceability
+# 8. Save to CSV for traceability
 def save_ingestion_report(stats: dict):
     report_dir = Path("load/verifications")
     report_dir.mkdir(parents=True, exist_ok=True)
@@ -274,7 +294,7 @@ def save_ingestion_report(stats: dict):
 
     print(f"📊 Ingestion report saved to: {report_file}")
 
-# 10. Lancement
+# 9. Lancement
 if __name__ == "__main__":
     try:
         # execution et vérification
@@ -319,7 +339,7 @@ if __name__ == "__main__":
                 result = execute_sql(sql)
                 print(f"{check_name}: {result[0][0] if result else 'N/A'}")
 
-        # 2 Call the save function
+        # 2️⃣ Call the save function
         save_ingestion_report(results)
 
     except Exception as e:

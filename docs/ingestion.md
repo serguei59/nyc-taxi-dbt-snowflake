@@ -25,6 +25,21 @@ Data is stored in two Snowflake tables under the **RAW schema**:
 - `RAW.BUFFER_YELLOW_TAXI_TRIPS` → temporary buffer table used for merges
 
 ---
+## ⚙️ Why DDL First? (Pro Practice)
+
+> Ingestion must follow a strict **DDL → DML** separation.
+
+| Type | Purpose |
+|------|---------|
+| **DDL (Data Definition Language)** | Define structure (e.g., tables, schemas) |
+| **DML (Data Manipulation Language)** | Manipulate content (e.g., INSERT, UPDATE) |
+
+### ✅ Advantages of DDL-first approach:
+
+- Ensures **clean structure before data**.
+- Makes the project **reproducible** and compatible with **CI/CD pipelines**.
+- Enables version control and **auditability** of schema changes.
+- Prevents accidental writes into undefined targets.
 
 ## 🚀 2. Step 1: Extract `.parquet` Files
 
