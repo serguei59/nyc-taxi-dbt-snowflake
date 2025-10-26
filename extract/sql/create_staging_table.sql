@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS RAW.yellow_taxi_trips (
+CREATE TABLE IF NOT EXISTS RAW.yellow_taxi_trips_staging (
     vendor_id STRING,
     pickup_datetime TIMESTAMP,
     dropoff_datetime TIMESTAMP,
@@ -16,5 +16,5 @@ CREATE TABLE IF NOT EXISTS RAW.yellow_taxi_trips (
     tolls_amount FLOAT,
     improvement_surcharge FLOAT,
     total_amount FLOAT,
-    congestion_surcharge FLOAT
+    congestion_surcharge FLOAT,
 );

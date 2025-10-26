@@ -1,0 +1,24 @@
+version: 2
+
+models:
+  - name: stg_yellow_taxi_trips
+    description: "Nettoyage et enrichissement des courses Yellow Taxi"
+    columns:
+      - name: tpep_pickup_datetime
+        tests:
+          - not_null
+      - name: tpep_dropoff_datetime
+        tests:
+          - not_null
+          - accepted_range:
+              min: "2020-01-01"
+              max: "2025-12-31"
+      - name: total_amount
+        tests:
+          - not_null
+          - positive_values
+      - name: trip_distance
+        tests:
+          - between:
+              min: 0.1
+              max: 100
