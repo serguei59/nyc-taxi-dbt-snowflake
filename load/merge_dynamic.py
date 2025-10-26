@@ -6,6 +6,9 @@ import snowflake.connector
 from snowflake.connector.pandas_tools import write_pandas
 import logging
 from snowflake_utils import execute_sql
+import csv
+from datetime import datetime
+from pathlib import Path
 
 # 1. Chargement des variables d'environnement
 load_dotenv()
@@ -236,8 +239,42 @@ def process_parquet_files():
         execute_sql(f"TRUNCATE TABLE {table_buffer}")
         print("🔁 BUFFER vidé\n")
 
+# 9. Save to CSV for traceability
+def save_ingestion_report(stats: dict):
+    report_dir = Path("load/verifications")
+    report_dir.mkdir(parents=True, exist_ok=True)
+    report_file = report_dir / "post_ingestion_report.csv"
 
-# 7. Lancement
+    headers = [
+        "timestamp",
+        "total_rows",
+        "duplicate_groups",
+        "buffer_rows",
+        "min_distance",
+        "max_distance",
+        "avg_distance"
+    ]
+
+    row = [
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        stats.get("TOTAL_ROWS", "N/A"),
+        stats.get("DUPLICATE_GROUPS", "N/A"),
+        stats.get("BUFFER_ROWS", "N/A"),
+        stats.get("MIN_DISTANCE", "N/A"),
+        stats.get("MAX_DISTANCE", "N/A"),
+        stats.get("AVG_DISTANCE", "N/A"),
+    ]
+
+    write_header = not report_file.exists()
+    with open(report_file, mode="a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        if write_header:
+            writer.writerow(headers)
+        writer.writerow(row)
+
+    print(f"📊 Ingestion report saved to: {report_file}")
+
+# 10. Lancement
 if __name__ == "__main__":
     try:
         # execution et vérification
@@ -266,9 +303,24 @@ if __name__ == "__main__":
             """
         }
 
+        # 1️⃣ Run checks and display results
+        results = {}
         for check_name, sql in sql_checks.items():
             result = execute_sql(sql)
+        # Handle multiple columns (DISTANCE_STATS returns 3 values)
+        if check_name == "DISTANCE_STATS":
+            results["MIN_DISTANCE"] = result[0][0] if result else None
+            results["MAX_DISTANCE"] = result[0][1] if result else None
+            results["AVG_DISTANCE"] = result[0][2] if result else None
+        else:
+            results[check_name] = result[0][0] if result else None
             print(f"{check_name}: {result[0][0] if result else 'N/A'}")
+            for check_name, sql in sql_checks.items():
+                result = execute_sql(sql)
+                print(f"{check_name}: {result[0][0] if result else 'N/A'}")
+
+        # 2 Call the save function
+        save_ingestion_report(results)
 
     except Exception as e:
         print(f"❌Erreur pendant le processus d ingestion: {e}")
