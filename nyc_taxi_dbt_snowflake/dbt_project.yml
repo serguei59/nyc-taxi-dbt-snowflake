@@ -10,11 +10,11 @@ target-path: "target"
 models:
   nyc_taxi_dbt_snowflake:
     raw:
-      +schema: raw
+      +schema: RAW
       +materialized: view
     staging:
-      +schema: staging
+      +schema: STAGING
       +materialized: table
     final:
-      +schema: final
+      +schema: FINAL
       +materialized: table
