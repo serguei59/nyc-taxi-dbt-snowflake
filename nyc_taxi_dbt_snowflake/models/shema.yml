@@ -1,0 +1,45 @@
+version: 2
+
+models:
+  - name: stg__clean_trips
+    description: "Cleansed and enriched NYC Taxi trips dataset"
+    columns:
+      - name: TRIP_DISTANCE
+        tests:
+          - not_null
+          - accepted_range:
+              min_value: 0
+              max_value: 100
+      - name: PASSENGER_COUNT
+        tests:
+          - not_null
+          - accepted_range:
+              min_value: 1
+              max_value: 6
+      - name: TOTAL_AMOUNT
+        tests:
+          - not_null
+          - accepted_range:
+              min_value: 0
+      - name: PULOCATIONID
+        tests: [not_null]
+      - name: DOLOCATIONID
+        tests: [not_null]
+
+  - name: fct__daily_summary
+    description: "Daily KPIs and averages"
+    columns:
+      - name: TRIP_DATE
+        tests: [not_null]
+
+  - name: fct__zone_analysis
+    description: "Pickup zone-level analysis"
+    columns:
+      - name: PICKUP_ZONE
+        tests: [not_null]
+
+  - name: fct__hourly_patterns
+    description: "Hourly travel and revenue patterns"
+    columns:
+      - name: PICKUP_HOUR
+        tests: [not_null]
