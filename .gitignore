@@ -221,3 +221,4 @@ nyc_taxi_dbt_snowflake/ingestion/data/
 **/data/
 *.parquet
 .env
+/conf

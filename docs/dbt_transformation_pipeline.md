@@ -1,37 +1,37 @@
-# 🧱 Transformation Pipeline – NYC Taxi Data (dbt + Snowflake)
+# 🧱 Data Transformation Pipeline – NYC Taxi Data (dbt + Snowflake)
 
-## 🎯 Objectif de la section
-Cette partie du projet a pour objectif de construire la **chaîne de transformation et de modélisation des données** dans Snowflake à l’aide de **dbt Core**, conformément aux exigences du brief Data Engineering Simplon.
+## 🎯 Objective
+This section of the project aims to build the **data transformation and modeling pipeline** in **Snowflake** using **dbt Core**, in full compliance with the Simplon Data Engineering brief.
 
-L’approche suit la logique d’un pipeline industriel :
+The approach follows a standard industrial data pipeline:
 ```
-RAW (brut) → STAGING (nettoyé & enrichi) → FINAL (analytique)
+RAW (ingested) → STAGING (cleaned & enriched) → FINAL (analytics)
 ```
 
 ---
 
-## ⚙️ Contexte technique
+## ⚙️ Technical Context
 
 ### 🔸 Technologies
-- **Snowflake** : Data Warehouse Cloud pour le stockage et les calculs.
-- **dbt Core** : outil de transformation de données SQL as code.
-- **Python (merge_dynamic.py)** : ingestion initiale vers le schéma RAW.
-- **dbt tests + docs** : validation et documentation automatisées.
+- **Snowflake** – Cloud Data Warehouse for storage and compute.
+- **dbt Core** – Data transformation and modeling framework using SQL as code.
+- **Python (`merge_dynamic.py`)** – Initial ingestion script writing to RAW schema.
+- **dbt tests & docs** – Automated quality control and documentation.
 
-### 🔸 Architecture globale
-| Niveau | Description | Exemple de table |
-|--------|--------------|------------------|
-| **RAW** | Données brutes importées depuis les fichiers Parquet | `RAW.YELLOW_TAXI_TRIPS` |
-| **STAGING** | Données nettoyées et enrichies | `STAGING.STG__CLEAN_TRIPS` |
-| **FINAL** | Tables agrégées prêtes à l’analyse | `FINAL.FCT__DAILY_SUMMARY`, `FINAL.FCT__ZONE_ANALYSIS`, `FINAL.FCT__HOURLY_PATTERNS` |
+### 🔸 Architecture Overview
+| Layer | Description | Example Tables |
+|--------|--------------|----------------|
+| **RAW** | Raw data loaded from Parquet files | `RAW.YELLOW_TAXI_TRIPS` |
+| **STAGING** | Cleaned and enriched data | `STAGING.STG__CLEAN_TRIPS` |
+| **FINAL** | Aggregated and analytical tables | `FINAL.FCT__DAILY_SUMMARY`, `FINAL.FCT__ZONE_ANALYSIS`, `FINAL.FCT__HOURLY_PATTERNS` |
 
 ---
 
-## 🧩 Modélisation dans dbt
+## 🧩 dbt Modeling
 
-### 🗂️ 1. Source de données : `raw__sources.yml`
+### 🗂️ 1. Data Source Declaration: `raw__sources.yml`
 
-Déclaration de la source brute utilisée pour les transformations.
+Defines the raw Snowflake source for all downstream models.
 
 ```yaml
 version: 2
@@ -39,17 +39,17 @@ version: 2
 sources:
   - name: RAW
     schema: RAW
-    description: "Tables brutes importées dans Snowflake depuis les fichiers Parquet"
+    description: "Raw Snowflake tables imported from Parquet files"
     tables:
       - name: YELLOW_TAXI_TRIPS
-        description: "Données NYC Taxi 2024–2025 chargées via le script Python d’ingestion"
+        description: "NYC Yellow Taxi 2024–2025 data ingested via Python pipeline"
 ```
 
 ---
 
-### 🧹 2. Modèle STAGING : `stg__clean_trips.sql`
+### 🧹 2. STAGING Model: `stg__clean_trips.sql`
 
-Ce modèle nettoie, filtre et enrichit les données selon les exigences du brief.
+Cleans, filters, and enriches the data according to the brief specifications.
 
 ```sql
 {{ config(materialized='table', schema='STAGING') }}
@@ -80,7 +80,7 @@ cleaned AS (
         IMPROVEMENT_SURCHARGE,
         CONGESTION_SURCHARGE,
         AIRPORT_FEE,
-        -- Dimensions temporelles
+        -- Temporal dimensions
         DATE(TPEP_PICKUP_DATETIME) AS TRIP_DATE,
         HOUR(TPEP_PICKUP_DATETIME) AS PICKUP_HOUR,
         MONTH(TPEP_PICKUP_DATETIME) AS PICKUP_MONTH
@@ -97,7 +97,9 @@ SELECT * FROM cleaned
 
 ---
 
-### 📆 3. Modèle FINAL #1 : `fct__daily_summary.sql`
+### 📆 3. FINAL Model #1: `fct__daily_summary.sql`
+
+Aggregated daily metrics.
 
 ```sql
 {{ config(materialized='table', schema='FINAL') }}
@@ -116,7 +118,9 @@ ORDER BY TRIP_DATE
 
 ---
 
-### 🗺️ 4. Modèle FINAL #2 : `fct__zone_analysis.sql`
+### 🗺️ 4. FINAL Model #2: `fct__zone_analysis.sql`
+
+Zone-based geographic analysis.
 
 ```sql
 {{ config(materialized='table', schema='FINAL') }}
@@ -135,7 +139,9 @@ ORDER BY TOTAL_TRIPS DESC
 
 ---
 
-### 🕒 5. Modèle FINAL #3 : `fct__hourly_patterns.sql`
+### 🕒 5. FINAL Model #3: `fct__hourly_patterns.sql`
+
+Hourly trend analysis.
 
 ```sql
 {{ config(materialized='table', schema='FINAL') }}
@@ -154,13 +160,14 @@ ORDER BY PICKUP_HOUR
 
 ---
 
-### 🧪 6. Tests de qualité (`schema.yml`)
+### 🧪 6. Data Quality Tests (`schema.yml`)
 
 ```yaml
 version: 2
 
 models:
   - name: stg__clean_trips
+    description: "Cleansed and enriched NYC Taxi trips dataset"
     columns:
       - name: TRIP_DISTANCE
         tests:
@@ -179,16 +186,19 @@ models:
         tests: [not_null]
 
   - name: fct__daily_summary
+    description: "Daily KPIs and averages"
     columns:
       - name: TRIP_DATE
         tests: [not_null]
 
   - name: fct__zone_analysis
+    description: "Pickup zone-level analysis"
     columns:
       - name: PICKUP_ZONE
         tests: [not_null]
 
   - name: fct__hourly_patterns
+    description: "Hourly travel and revenue patterns"
     columns:
       - name: PICKUP_HOUR
         tests: [not_null]
@@ -196,26 +206,38 @@ models:
 
 ---
 
-## 🧠 Validation et exécution
+## 🧠 Validation & Execution
 
 ```bash
-dbt debug
-dbt run
-dbt test
-dbt docs generate
-dbt docs serve
+dbt debug               # Validate Snowflake connection
+dbt run                 # Run all transformations
+dbt test                # Execute all data quality checks
+dbt docs generate       # Build project documentation
+dbt docs serve          # Launch interactive dbt docs & lineage view
 ```
 
 ---
 
-## ✅ Conformité au brief
+## ✅ Brief Compliance Summary
 
-| Exigence | Modèle/Fichier | Statut |
-|-----------|----------------|--------|
-| Nettoyage complet | `stg__clean_trips.sql` | ✅ |
-| Enrichissement temporel & pourboire | `stg__clean_trips.sql` | ✅ |
-| Table journalière | `fct__daily_summary.sql` | ✅ |
-| Table par zone | `fct__zone_analysis.sql` | ✅ |
-| Table horaire | `fct__hourly_patterns.sql` | ✅ |
-| Tests qualité & doc | `schema.yml` + `dbt docs` | ✅ |
-| Architecture 3-niveaux | RAW → STAGING → FINAL | ✅ |
+| Requirement | Model/File | Status |
+|--------------|-------------|--------|
+| Data cleaning & normalization | `stg__clean_trips.sql` | ✅ |
+| Time and tip enrichments | `stg__clean_trips.sql` | ✅ |
+| Daily aggregation | `fct__daily_summary.sql` | ✅ |
+| Zone-based analysis | `fct__zone_analysis.sql` | ✅ |
+| Hourly analysis | `fct__hourly_patterns.sql` | ✅ |
+| Data tests & documentation | `schema.yml` + dbt docs | ✅ |
+| RAW → STAGING → FINAL architecture | All models | ✅ |
+
+---
+
+## 🧩 Conclusion
+
+This dbt transformation layer implements:
+- A **modular and reproducible** architecture,  
+- **Clean, version-controlled SQL transformations**,  
+- **Automated data validation and lineage documentation**,  
+- **Full compliance with industrial-grade Snowflake standards**.  
+
+The transformation pipeline is thus **robust, auditable, and production-ready**.
