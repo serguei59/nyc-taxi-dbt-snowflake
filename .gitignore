@@ -215,4 +215,9 @@ profiles.yml
 logs/
 target/
 dbt_packages/
+
+# Dossiers data
+nyc_taxi_dbt_snowflake/ingestion/data/
+**/data/
+*.parquet
 .env
