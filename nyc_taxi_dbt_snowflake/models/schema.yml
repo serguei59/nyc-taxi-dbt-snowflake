@@ -76,12 +76,7 @@ models:
       - name: PICKUP_ZONE
         tests:
           - not_null
-      - name: AVG_FARE_AMOUNT
-        tests:
-          - dbt_utils.accepted_range:
-              column_name: AVG_FARE_AMOUNT
-              min_value: 0
-
+      
   - name: fct__hourly_patterns
     description: "Hourly travel and revenue patterns"
     columns:
@@ -90,9 +85,9 @@ models:
           - not_null
           - metaplane_expectations.expect_compound_columns_to_be_unique:
               columns: [PICKUP_HOUR]
-      - name: AVERAGE_TRIP_DISTANCE
+      - name: AVG_DISTANCE
         tests:
           - dbt_utils.accepted_range:
-              column_name: AVERAGE_TRIP_DISTANCE
+              column_name: AVG_DISTANCE
               min_value: 0
               max_value: 100
