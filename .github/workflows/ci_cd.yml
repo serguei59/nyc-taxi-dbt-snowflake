@@ -24,8 +24,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run download_parquets.py
-        run: python extract/download_parquets.py
+      - name: Run download_parquet.py
+        run: python extract/download_parquet.py
 
       - name: Run ingest_snowflake.py
         env:
