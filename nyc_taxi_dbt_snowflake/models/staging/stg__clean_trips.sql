@@ -18,7 +18,7 @@ cleaned AS (
         PULOCATIONID,
         DOLOCATIONID,
         PASSENGER_COUNT,
-        PAYMENT_TYPE,
+        CAST(PAYMENT_TYPE AS VARCHAR) AS PAYMENT_TYPE,
         RATECODEID,
         MTA_TAX,
         EXTRA,

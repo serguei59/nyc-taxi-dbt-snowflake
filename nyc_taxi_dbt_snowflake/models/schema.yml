@@ -1,130 +1,98 @@
 version: 2
 
 models:
-  # -------------------------------------------------------------
-  # 1️⃣ STAGING : Data cleaning and validation
-  # -------------------------------------------------------------
   - name: stg__clean_trips
-    description: "Cleansed and enriched NYC Taxi trips dataset with data quality and consistency checks"
+    description: "Cleansed and enriched NYC Taxi trips dataset"
     columns:
-      # Trip distance
       - name: TRIP_DISTANCE
-        description: "Trip distance in miles"
         tests:
           - not_null
-          - accepted_range:
+          - dbt_utils.accepted_range:
+              column_name: TRIP_DISTANCE
               min_value: 0
               max_value: 100
-          - dbt_expectations.expect_column_quantile_values_to_be_between:
-              quantile: 0.99
+          - metaplane_expectations.expect_column_quantile_values_to_be_between:
+              column: TRIP_DISTANCE
+              quantiles: [0,0.99]
               min_value: 0
               max_value: 100
-
-      # Passenger count
       - name: PASSENGER_COUNT
-        description: "Number of passengers on board"
         tests:
           - not_null
-          - accepted_range:
+          - dbt_utils.accepted_range:
+              column_name: PASSENGER_COUNT
               min_value: 1
               max_value: 6
-
-      # Total amount
       - name: TOTAL_AMOUNT
-        description: "Total fare amount in USD"
         tests:
           - not_null
-          - accepted_range:
+          - dbt_utils.accepted_range:
+              column_name: TOTAL_AMOUNT
               min_value: 0
-
-      # Location identifiers
       - name: PULOCATIONID
-        description: "Pickup location ID"
         tests:
           - not_null
-
       - name: DOLOCATIONID
-        description: "Drop-off location ID"
         tests:
           - not_null
-
-      # Payment type
       - name: PAYMENT_TYPE
-        description: "Payment method used for the trip"
         tests:
-          - accepted_values:
-              values: ['Cash', 'Credit card', 'No charge', 'Unknown']
-
-      # Rate code
+          - dbt_utils.accepted_values:
+              column_name: PAYMENT_TYPE
+              values: ['Cash', 'Credit_card', 'No_charge', 'Unknown']
       - name: RATECODEID
-        description: "Rate Code ID"
         tests:
-          - accepted_values:
-              values: [1, 2, 3, 4, 5, 6]
-
-      # Temporal consistency
+          - dbt_utils.accepted_values:
+              column_name: RATECODEID
+              values: [1,2,3,4,5,6]
       - name: tpep_pickup_datetime
-        description: "Timestamp of trip start"
         tests:
           - not_null
-          - dbt_expectations.expect_column_values_to_be_before:
-              compare_column: tpep_dropoff_datetime
-
       - name: tpep_dropoff_datetime
-        description: "Timestamp of trip end"
         tests:
           - not_null
+          - metaplane_expectations.expect_column_values_to_be_before:
+              first_column: tpep_pickup_datetime
+              second_column: tpep_dropoff_datetime
 
-  # -------------------------------------------------------------
-  # 2️⃣ FACT : Daily summary metrics
-  # -------------------------------------------------------------
   - name: fct__daily_summary
-    description: "Daily key metrics and aggregated performance indicators"
-    tests:
-      - dbt_expectations.expect_table_row_count_to_be_between:
-          min_value: 1
+    description: "Daily KPIs and averages"
     columns:
       - name: TRIP_DATE
-        description: "Trip date"
-        tests: [not_null]
-      - name: TOTAL_REVENUE
-        description: "Total revenue for the day"
         tests:
           - not_null
-          - accepted_range:
+      - name: TOTAL_REVENUE
+        tests:
+          - dbt_utils.accepted_range:
+              column_name: TOTAL_REVENUE
               min_value: 0
+          - metaplane_expectations.expect_table_row_count_to_be_between:
+              min_value: 1
+              max_value: 1000000
 
-  # -------------------------------------------------------------
-  # 3️⃣ FACT : Zone-level analysis
-  # -------------------------------------------------------------
   - name: fct__zone_analysis
-    description: "Zone-level performance analysis based on pickup locations"
+    description: "Pickup zone-level analysis"
     columns:
       - name: PICKUP_ZONE
-        description: "Pickup zone name"
-        tests: [not_null]
-      - name: AVG_FARE_AMOUNT
-        description: "Average fare per pickup zone"
-        tests:
-          - accepted_range:
-              min_value: 0
-
-  # -------------------------------------------------------------
-  # 4️⃣ FACT : Hourly travel patterns
-  # -------------------------------------------------------------
-  - name: fct__hourly_patterns
-    description: "Hourly travel and revenue distribution analysis"
-    columns:
-      - name: PICKUP_HOUR
-        description: "Hour of the day when the trip started"
         tests:
           - not_null
-      - name: AVERAGE_TRIP_DISTANCE
-        description: "Average trip distance per hour"
+      - name: AVG_FARE_AMOUNT
         tests:
-          - accepted_range:
+          - dbt_utils.accepted_range:
+              column_name: AVG_FARE_AMOUNT
+              min_value: 0
+
+  - name: fct__hourly_patterns
+    description: "Hourly travel and revenue patterns"
+    columns:
+      - name: PICKUP_HOUR
+        tests:
+          - not_null
+          - metaplane_expectations.expect_compound_columns_to_be_unique:
+              columns: [PICKUP_HOUR]
+      - name: AVERAGE_TRIP_DISTANCE
+        tests:
+          - dbt_utils.accepted_range:
+              column_name: AVERAGE_TRIP_DISTANCE
               min_value: 0
               max_value: 100
-    tests:
-      - dbt_expectations.expect_compound_columns_to_be_unique:
-          column_list: ['PICKUP_HOUR']
