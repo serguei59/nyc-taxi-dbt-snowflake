@@ -39,7 +39,151 @@ conn = snowflake.connector.connect(
 cursor = conn.cursor()
 
 # 5️⃣ Fonctions auxiliaires (map_dtype, create_table_if_not_exists, update_table_schema...)
-# … (garde toutes tes fonctions déjà définies ici, inchangées) …
+
+# Mapping type pandas -> Snowflake
+def map_dtype(dtype: str, verbose: bool =False) -> str:
+    """
+    Mappe un type pandas en type Snowflake compatible.
+    Affiche un log si verbose=True.
+    """
+    dtype_original = dtype  # pour log
+    dtype = dtype.lower()
+
+    # Mapping générique
+    if any(kw in dtype for kw in ["object", "string"]):
+        sf_type = "VARCHAR"
+    elif any(kw in dtype for kw in ["int64", "int"]):
+        sf_type = "NUMBER"
+    elif any(kw in dtype for kw in ["float64", "float"]):
+        sf_type = "FLOAT"
+    elif "bool" in dtype:
+        sf_type = "BOOLEAN"
+    elif dtype.startswith("datetime"):
+        sf_type = "TIMESTAMP_NTZ"
+    else:
+        sf_type = "VARCHAR"
+
+    if verbose:
+        print(f"[🔍 Mapping] Pandas dtype '{dtype_original}' ➝ Snowflake type '{sf_type}'")
+
+    return sf_type
+
+# Création de la table si elle n'existe pas
+def create_table_if_not_exists(df, table_name, verbose: bool =False):
+    cols = []
+    for col in df.columns:
+        pandas_dtype = str(df[col].dtype)
+        snowflake_type = map_dtype(pandas_dtype, verbose=verbose)
+        cols.append(f'"{col.upper()}" {snowflake_type}')
+
+    columns_definition = ", ".join(cols)
+    sql = f'CREATE TABLE IF NOT EXISTS {table_name} ({columns_definition})'
+
+    if verbose:
+        print(f"[🛠️ SQL] {sql}")
+
+    execute_sql(sql)
+
+# Mise à jour du schéma si colonnes manquantes
+#def update_table_schema(df: pd.DataFrame, table_name: str, verbose: bool = False):
+#    try:
+#        existing_cols = [row[0].upper() for row in execute_sql(f"DESC TABLE {table_name}")]
+#    except:
+#        existing_cols = []
+#    for col in df.columns:
+#        if col.upper() not in existing_cols:
+#            pandas_dtype = str(df[col].dtype)
+#            snowflake_type = map_dtype(pandas_dtype, verbose=verbose)
+#            sql = f'ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS {col.upper()} {snowflake_type}'
+#            execute_sql(sql)
+# Assure-toi que map_dtype(dtype, verbose=False) est définie plus haut
+# Assure-toi que execute_sql(sql) est définie et renvoie cursor.fetchall()
+
+def get_existing_columns_and_types(table_name: str):
+    """
+    Retourne un dict {COLUMN_NAME: DATA_TYPE} pour la table donnée (nom TABLE_SCHEMA.TABLE_NAME attendu
+    ou juste TABLE_NAME si le schema par défaut est correctement configuré dans la connexion).
+    """
+
+    # Normalisation SCHEMA + TABLE
+    if '.' not in table_name:
+        schema = os.getenv('SNOWFLAKE_SCHEMA').upper()
+        table = table_name.upper()
+    else:
+        parts = table_name.split('.')
+        if len(parts) == 2:
+            schema, table = parts[0].upper(), parts[1].upper()
+        else:
+            raise ValueError("table_name doit être 'TABLE' ou 'SCHEMA.TABLE'")
+        
+    # On interroge INFORMATION_SCHEMA pour avoir le type exact stocké en Snowflake
+    sql = f"""
+    SELECT COLUMN_NAME, DATA_TYPE
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_NAME = '{table_name.split('.')[-1].upper()}'
+      AND TABLE_SCHEMA = '{os.getenv('SNOWFLAKE_SCHEMA').upper()}'
+    """
+    try:
+        rows = execute_sql(sql)
+        return {row[0].upper(): row[1].upper() for row in rows}
+    except Exception as e:
+        # Si la table n'existe pas ou autre, renvoie dict vide
+        print(f"⚠️ Warning getting columns for {table_name}: {e}")
+        return {}
+
+def update_table_schema(df: pd.DataFrame, table_name: str, verbose: bool = False):
+    """
+    Compare les colonnes du DataFrame à la table Snowflake et ajoute les colonnes manquantes.
+    - df: pandas.DataFrame (colonnes en lower_case recommandées)
+    - table_name: chaîne, ex: "RAW.YELLOW_TAXI_TRIPS" ou "YELLOW_TAXI_TRIPS"
+    - verbose: affiche des logs détaillés si True
+    """
+    # Normaliser le nom de la table en majuscules si nécessaire
+    if '.' in table_name:
+        table_name_sql = table_name.upper()
+    else:
+        table_name_sql = f"{os.getenv('SNOWFLAKE_SCHEMA').upper()}.{table_name.upper()}"
+
+
+    existing = get_existing_columns_and_types(table_name_sql)
+
+    if verbose:
+        print(f"[INFO] Columns existing in {table_name_sql}: {list(existing.keys())}")
+
+    to_add = []
+    type_mismatches = []
+
+    for col in df.columns:
+        col_up = col.upper()
+        pandas_dtype = str(df[col].dtype)
+        target_type = map_dtype(pandas_dtype, verbose=False).upper()
+
+        if col_up not in existing:
+            to_add.append((col_up, target_type))
+        else:
+            snow_type = existing[col_up].upper()
+            # On compare simplement et on logge la mismatch, on n'essaie pas de modifier automatiquement
+            if snow_type != target_type:
+                type_mismatches.append((col_up, snow_type, target_type))
+
+    # Ajout des colonnes manquantes
+    for col_name, sf_type in to_add:
+        sql = f'ALTER TABLE {table_name_sql} ADD COLUMN IF NOT EXISTS "{col_name}" {sf_type}'
+        if verbose:
+            print(f"[SQL] {sql}")
+        execute_sql(sql)
+        print(f"➕ Added column {col_name} {sf_type} to {table_name_sql}")
+
+    # Signaler les mismatches de type
+    if type_mismatches:
+        print("⚠️ Type mismatches detected (Snowflake_type vs detected_pandas_type):")
+        for col_name, snow_type, detected in type_mismatches:
+            print(f"   - {col_name}: {snow_type} (Snowflake)  |  {detected} (detected)")
+        print("➡️ No automatic type conversion performed; review and alter types manually if needed.")
+
+    if not to_add and not type_mismatches and verbose:
+        print(f"[INFO] No schema changes required for {table_name_sql}")
+
 
 # 6️⃣ Traitement des fichiers parquet
 def process_parquet_files():
