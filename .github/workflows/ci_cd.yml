@@ -82,10 +82,10 @@ jobs:
                   schema: ${{ secrets.SNOWFLAKE_SCHEMA }}
                   threads: 1
                   client_session_keep_alive: False
-            EOF    
+            EOF        
           
       - name: Run dbt
-        working-directory: ./nyc_taxi_dbt_snowflake # <-- ajuster si ton projet dbt est dans un sous-dossier
+        working-directory: ./nyc_taxi_dbt_snowflake
         run: |
           dbt deps --profiles-dir ~/.dbt
           dbt seed --full-refresh
