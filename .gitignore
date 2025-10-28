@@ -219,6 +219,7 @@ dbt_packages/
 # Dossiers data
 nyc_taxi_dbt_snowflake/ingestion/data/
 **/data/
+**/data2/
 *.parquet
 .env
 /conf
