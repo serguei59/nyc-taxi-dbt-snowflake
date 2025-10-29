@@ -5,83 +5,103 @@ models:
     description: "Cleansed and enriched NYC Taxi trips dataset"
     columns:
       - name: TRIP_DISTANCE
+        description: "Distance covered by the trip in miles"
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              column_name: TRIP_DISTANCE
-              min_value: 0
-              max_value: 100
+              arguments:
+                column_name: TRIP_DISTANCE
+                min_value: 0
+                max_value: 100
           - dbt_expectations.expect_column_quantile_values_to_be_between:
-              column: TRIP_DISTANCE
-              quantiles: [0, 0.99]
-              min_value: 0
-              max_value: 100
+              arguments:
+                quantiles: [0, 0.99]
+                min_value: 0
+                max_value: 100
 
       - name: PASSENGER_COUNT
+        description: "Number of passengers per trip"
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              column_name: PASSENGER_COUNT
-              min_value: 1
-              max_value: 6
+              arguments:
+                column_name: PASSENGER_COUNT
+                min_value: 1
+                max_value: 6
 
       - name: TOTAL_AMOUNT
+        description: "Total fare amount paid by the customer"
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              column_name: TOTAL_AMOUNT
-              min_value: 0
+              arguments:
+                column_name: TOTAL_AMOUNT
+                min_value: 0
 
       - name: PULOCATIONID
+        description: "Pickup location zone ID"
         tests:
           - not_null
 
       - name: DOLOCATIONID
+        description: "Drop-off location zone ID"
         tests:
           - not_null
 
       - name: PAYMENT_TYPE
+        description: "Type of payment used for the trip"
         tests:
           - dbt_expectations.expect_column_values_to_be_in_set:
-              value_set: ['Cash', 'Credit_card', 'No_charge', 'Unknown']
-              quote_values: true
+              arguments:
+                value_set: ['Cash', 'Credit_card', 'No_charge', 'Unknown']
+                quote_values: true
 
       - name: RATECODEID
+        description: "Rate code identifier used by the driver"
         tests:
           - dbt_expectations.expect_column_values_to_be_in_set:
-              value_set: [1, 2, 3, 4, 5, 6]
+              arguments:
+                value_set: ['1','2','3','4','5','6']
+                quote_values: true
 
       - name: tpep_pickup_datetime
+        description: "Datetime when the trip started"
         tests:
           - not_null
 
       - name: tpep_dropoff_datetime
+        description: "Datetime when the trip ended"
         tests:
           - not_null
-          - dbt_expectations.expect_column_pair_values_a_to_be_less_than_b:
-              column_A: tpep_pickup_datetime
-              column_B: tpep_dropoff_datetime
+          - dbt_expectations.expect_column_values_to_be_before:
+              arguments:
+                first_column: tpep_pickup_datetime
+                second_column: tpep_dropoff_datetime
 
   - name: fct__daily_summary
-    description: "Daily KPIs and averages"
+    description: "Daily KPIs and revenue aggregation"
     columns:
       - name: TRIP_DATE
+        description: "Date of the trip"
         tests:
           - not_null
-
       - name: TOTAL_REVENUE
+        description: "Sum of daily trip revenues"
         tests:
           - dbt_utils.accepted_range:
-              column_name: TOTAL_REVENUE
-              min_value: 0
+              arguments:
+                column_name: TOTAL_REVENUE
+                min_value: 0
           - dbt_expectations.expect_table_row_count_to_be_between:
-              min_value: 1
-              max_value: 1000000
+              arguments:
+                min_value: 1
+                max_value: 1000000
 
   - name: fct__zone_analysis
-    description: "Pickup zone-level analysis"
+    description: "Analysis by pickup zone"
     columns:
       - name: PICKUP_ZONE
+        description: "Zone name for pickup area"
         tests:
           - not_null
 
@@ -89,14 +109,17 @@ models:
     description: "Hourly travel and revenue patterns"
     columns:
       - name: PICKUP_HOUR
+        description: "Hour of the trip pickup"
         tests:
           - not_null
           - dbt_expectations.expect_compound_columns_to_be_unique:
-              column_list: [PICKUP_HOUR]
-
+              arguments:
+                columns: [PICKUP_HOUR]
       - name: AVG_DISTANCE
+        description: "Average trip distance per hour"
         tests:
           - dbt_utils.accepted_range:
-              column_name: AVG_DISTANCE
-              min_value: 0
-              max_value: 100
+              arguments:
+                column_name: AVG_DISTANCE
+                min_value: 0
+                max_value: 100
