@@ -187,8 +187,8 @@ def update_table_schema(df: pd.DataFrame, table_name: str, verbose: bool = False
 
 # 6️⃣ Traitement des fichiers parquet
 def process_parquet_files():
-    table_final = "YELLOW_TAXI_TRIPS"
-    table_buffer = "BUFFER_YELLOW_TAXI_TRIPS"
+    table_final = "YELLOW_TAXI_TRIPS_V2"
+    table_buffer = "BUFFER_YELLOW_TAXI_TRIPS_V2"
 
     data_dir = Path(__file__).parent / "extract/data"
     files = list(data_dir.glob("*.parquet"))
