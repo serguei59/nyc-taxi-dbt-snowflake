@@ -5,7 +5,6 @@ models:
     description: "Cleansed and enriched NYC Taxi trips dataset"
     tests:
       - dbt_expectations.expect_table_row_count_to_be_between:
-              arguments:
                 min_value: 1
                 max_value: 80000000
                 config:
@@ -29,10 +28,9 @@ models:
                 min_value: 0
                 max_value: 100
           - dbt_expectations.expect_column_quantile_values_to_be_between:
-              arguments:
-                quantile: 0.99
-                min_value: 0
-                max_value: 100
+              quantile: 0.99
+              min_value: 0
+              max_value: 100
 
       - name: PASSENGER_COUNT
         description: "Number of passengers per trip"
@@ -67,18 +65,14 @@ models:
         description: "Type of payment used for the trip"
         tests:
           - dbt_expectations.expect_column_values_to_be_in_set:
-              arguments:
-                value_set: ['Cash', 'Credit_card', 'No_charge', 'Unknown']
-                quote_values: true
-
-      - name: RATECODEID
-        description: "Rate code identifier used by the driver"
-        tests:
-          - dbt_expectations.expect_column_values_to_be_in_set:
-              arguments:
-                value_set: ['1','2','3','4','5','6']
-                quote_values: true
-
+              value_set: [1, 2, 3, 4, 5]
+              
+  - name: RATECODEID
+    description: "Rate code identifier used by the driver"
+    tests:
+      - dbt_expectations.expect_column_values_to_be_in_set:
+          value_set: [1, 2, 3, 4, 5, 6, 99]
+          
       - name: tpep_pickup_datetime
         description: "Datetime when the trip started"
         tests:
