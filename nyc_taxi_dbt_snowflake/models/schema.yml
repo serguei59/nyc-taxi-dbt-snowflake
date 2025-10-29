@@ -113,6 +113,9 @@ models:
 
   - name: fct__hourly_patterns
     description: "Hourly travel and revenue patterns"
+    tests:
+          - dbt_expectations.expect_compound_columns_to_be_unique:
+              column_list: ["TRIP_DATE", "PICKUP_HOUR"]
     columns:
       - name: TRIP_DATE
         tests:
@@ -121,9 +124,6 @@ models:
       - name: PICKUP_HOUR
         tests:
           - not_null
-          - dbt_expectations.expect_compound_columns_to_be_unique:
-              arguments:
-                columns: [TRIP_DATE, PICKUP_HOUR]
           - dbt_expectations.expect_column_values_to_be_in_set:
               arguments:
                 column: PICKUP_HOUR
