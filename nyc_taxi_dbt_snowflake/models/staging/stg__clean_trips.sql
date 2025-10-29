@@ -1,7 +1,7 @@
 {{ config(materialized='table', schema='STAGING') }}
 
 WITH source AS (
-    SELECT * FROM {{ source('RAW', 'YELLOW_TAXI_TRIPS') }}
+    SELECT * FROM {{ source('RAW', 'YELLOW_TAXI_TRIPS_V2') }}
 ),
 
 cleaned AS (
