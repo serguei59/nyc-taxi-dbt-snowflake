@@ -11,11 +11,12 @@ models:
               column_name: TRIP_DISTANCE
               min_value: 0
               max_value: 100
-          - metaplane_expectations.expect_column_quantile_values_to_be_between:
+          - dbt_expectations.expect_column_quantile_values_to_be_between:
               column: TRIP_DISTANCE
-              quantiles: [0,0.99]
+              quantiles: [0, 0.99]
               min_value: 0
               max_value: 100
+
       - name: PASSENGER_COUNT
         tests:
           - not_null
@@ -23,37 +24,43 @@ models:
               column_name: PASSENGER_COUNT
               min_value: 1
               max_value: 6
+
       - name: TOTAL_AMOUNT
         tests:
           - not_null
           - dbt_utils.accepted_range:
               column_name: TOTAL_AMOUNT
               min_value: 0
+
       - name: PULOCATIONID
         tests:
           - not_null
+
       - name: DOLOCATIONID
         tests:
           - not_null
+
       - name: PAYMENT_TYPE
         tests:
-          - dbt_utils.accepted_values:
-              column_name: PAYMENT_TYPE
-              values: ['Cash', 'Credit_card', 'No_charge', 'Unknown']
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: ['Cash', 'Credit_card', 'No_charge', 'Unknown']
+              quote_values: true
+
       - name: RATECODEID
         tests:
-          - dbt_utils.accepted_values:
-              column_name: RATECODEID
-              values: [1,2,3,4,5,6]
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [1, 2, 3, 4, 5, 6]
+
       - name: tpep_pickup_datetime
         tests:
           - not_null
+
       - name: tpep_dropoff_datetime
         tests:
           - not_null
-          - metaplane_expectations.expect_column_values_to_be_before:
-              first_column: tpep_pickup_datetime
-              second_column: tpep_dropoff_datetime
+          - dbt_expectations.expect_column_pair_values_a_to_be_less_than_b:
+              column_A: tpep_pickup_datetime
+              column_B: tpep_dropoff_datetime
 
   - name: fct__daily_summary
     description: "Daily KPIs and averages"
@@ -61,12 +68,13 @@ models:
       - name: TRIP_DATE
         tests:
           - not_null
+
       - name: TOTAL_REVENUE
         tests:
           - dbt_utils.accepted_range:
               column_name: TOTAL_REVENUE
               min_value: 0
-          - metaplane_expectations.expect_table_row_count_to_be_between:
+          - dbt_expectations.expect_table_row_count_to_be_between:
               min_value: 1
               max_value: 1000000
 
@@ -76,15 +84,16 @@ models:
       - name: PICKUP_ZONE
         tests:
           - not_null
-      
+
   - name: fct__hourly_patterns
     description: "Hourly travel and revenue patterns"
     columns:
       - name: PICKUP_HOUR
         tests:
           - not_null
-          - metaplane_expectations.expect_compound_columns_to_be_unique:
-              columns: [PICKUP_HOUR]
+          - dbt_expectations.expect_compound_columns_to_be_unique:
+              column_list: [PICKUP_HOUR]
+
       - name: AVG_DISTANCE
         tests:
           - dbt_utils.accepted_range:
