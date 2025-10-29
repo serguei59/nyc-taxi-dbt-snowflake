@@ -14,7 +14,7 @@ models:
                     Trips number over 80M require special approval.
                     Values outside this range should be investigated but might be legitimate.
       - dbt_expectations.expect_column_pair_values_A_to_be_greater_than_B:
-              column_A: tpep_dropff_datetime
+              column_A: tpep_dropoff_datetime
               column_B: tpep_pickup_datetime
               or_equal: False
 
@@ -88,10 +88,7 @@ models:
         description: "Datetime when the trip ended"
         tests:
           - not_null
-          - dbt_expectations.expect_column_values_to_be_before:
-              arguments:
-                first_column: tpep_pickup_datetime
-                second_column: tpep_dropoff_datetime
+          
 
   - name: fct__daily_summary
     description: "Daily KPIs and revenue aggregation"
