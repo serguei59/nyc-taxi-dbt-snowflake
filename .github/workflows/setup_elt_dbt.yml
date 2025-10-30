@@ -16,8 +16,11 @@ jobs:
 
       - name: Install SnowSQL
         run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev libffi-dev
           curl -O https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowsql-1.2.26-linux_x86_64.bash
-          bash snowsql-1.2.26-linux_x86_64.bash
+          chmod +x snowsql-1.2.26-linux_x86_64.bash
+          ./snowsql-1.2.26-linux_x86_64.bash -y
 
       - name: Run clean install script
         env:
