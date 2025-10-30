@@ -286,7 +286,7 @@ def process_parquet_files():
 
 # 7️⃣ Sauvegarde du report
 def save_ingestion_report(stats: dict):
-    report_dir = Path(__file__).parent / "load/verifications"
+    report_dir = Path(__file__).parent / "verifications"
     report_dir.mkdir(parents=True, exist_ok=True)
     report_file = report_dir / "post_ingestion_report.csv"
 
