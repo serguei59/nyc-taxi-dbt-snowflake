@@ -190,18 +190,32 @@ def process_parquet_files():
     table_final = "YELLOW_TAXI_TRIPS_V2"
     table_buffer = "BUFFER_YELLOW_TAXI_TRIPS_V2"
 
-    data_dir = Path(__file__).parent / "extract/data"
+    # Récupère le chemin du dossier racine du projet (2 niveaux au-dessus de ce fichier)
+    project_root = Path(__file__).resolve().parents[1]
+
+    # Chemin absolu vers le dossier extract/data
+    data_dir = project_root / "extract" / "data"
+
+    print("📂 Fichier actuel :", __file__)
+    print("📂 Racine projet  :", project_root)
+    print("📂 Dossier data   :", data_dir)
+
+    # Vérifie l'existence du dossier
+    if not data_dir.exists():
+        raise FileNotFoundError(f"❌ Le dossier {data_dir} n'existe pas.")
+
+    # Recherche des fichiers .parquet
     files = list(data_dir.glob("*.parquet"))
     if not files:
-        print("⚠️ Aucun fichier .parquet trouvé dans extract/data/")
+        print("⚠️ Aucun fichier .parquet trouvé dans", data_dir)
         return
-
-    for file in files:
-        print(f"🚀 Fichier : {file.name}")
-        df = pd.read_parquet(file)
-
+    
+    print(f"✅ {len(files)} fichier(s) trouvé(s) :")
+    for f in files:
+        print("   -", f.name)
+        df = pd.read_parquet(f)
         # Harmonisation colonnes
-        df.columns = [col.upper() for col in df.columns]
+        df.columns = [col.upper() for col in df.columns]          
 
         # Suppression doublons
         before = len(df)
@@ -312,24 +326,24 @@ if __name__ == "__main__":
 
         print("\n📊 Vérification post-ingestion Snowflake...")
         sql_checks = {
-            "TOTAL_ROWS": "SELECT COUNT(*) AS TOTAL_ROWS FROM RAW.YELLOW_TAXI_TRIPS;",
+            "TOTAL_ROWS": "SELECT COUNT(*) AS TOTAL_ROWS FROM RAW.YELLOW_TAXI_TRIPS_V2;",
             "DUPLICATE_GROUPS": """
                 SELECT COUNT(*) AS DUPLICATE_GROUPS 
                 FROM (
                     SELECT TPEP_PICKUP_DATETIME, TPEP_DROPOFF_DATETIME, VENDORID, PULOCATIONID, DOLOCATIONID,
                            COUNT(*) AS c
-                    FROM RAW.YELLOW_TAXI_TRIPS
+                    FROM RAW.YELLOW_TAXI_TRIPS_V2
                     GROUP BY 1,2,3,4,5
                     HAVING COUNT(*) > 1
                 );
             """,
-            "BUFFER_ROWS": "SELECT COUNT(*) AS BUFFER_ROWS FROM RAW.BUFFER_YELLOW_TAXI_TRIPS;",
+            "BUFFER_ROWS": "SELECT COUNT(*) AS BUFFER_ROWS FROM RAW.BUFFER_YELLOW_TAXI_TRIPS_V2;",
             "DISTANCE_STATS": """
                 SELECT 
                     MIN(TRIP_DISTANCE) AS MIN_DISTANCE,
                     MAX(TRIP_DISTANCE) AS MAX_DISTANCE,
                     AVG(TRIP_DISTANCE) AS AVG_DISTANCE
-                FROM RAW.YELLOW_TAXI_TRIPS;
+                FROM RAW.YELLOW_TAXI_TRIPS_V2;
             """
         }
 
