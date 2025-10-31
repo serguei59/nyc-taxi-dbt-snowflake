@@ -47,55 +47,55 @@ jobs:
 
           echo "🔹 Step 1: Preparing Snowflake private key file..."
 
-          # 1️⃣ Créer le fichier temporaire
-          KEY_FILE=$(mktemp /tmp/snowflake_key.XXXXXX.p8) || { echo "❌ Failed to create temp file"; exit 1; }
-           "✅ Temp file created: $KEY_FILE"
+          # Créer le fichier temporaire
+          KEY_FILE=$(mktemp /tmp/snowflake_key.XXXXXX.p8) || { echo " Failed to create temp file"; exit 1; }
+           " Temp file created: $KEY_FILE"
 
-          # 2️⃣ Vérifier que la variable d'environnement existe
+          # Vérifier que la variable d'environnement existe
           if [ -z "$SNOWFLAKE_PRIVATE_KEY" ]; then
-              echo "❌ SNOWFLAKE_PRIVATE_KEY is empty or not set!"
+              echo "SNOWFLAKE_PRIVATE_KEY is empty or not set!"
               exit 1
           else
-              echo "✅ SNOWFLAKE_PRIVATE_KEY is set (content hidden for security)"
+              echo "SNOWFLAKE_PRIVATE_KEY is set (content hidden for security)"
           fi
 
-          # 3️⃣ Écrire la clé dans le fichier
-          echo "$SNOWFLAKE_PRIVATE_KEY" > "$KEY_FILE" || { echo "❌ Failed to write key to $KEY_FILE"; exit 1; }
-          echo "✅ Key written to $KEY_FILE"
+          # Écrire la clé dans le fichier
+          echo "$SNOWFLAKE_PRIVATE_KEY" > "$KEY_FILE" || { echo "Failed to write key to $KEY_FILE"; exit 1; }
+          echo "Key written to $KEY_FILE"
 
-          # 4️⃣ Restreindre les permissions
-          chmod 600 "$KEY_FILE" || { echo "❌ Failed to set permissions on $KEY_FILE"; exit 1; }
-          echo "✅ Permissions set to 600"
+          # Restreindre les permissions
+          chmod 600 "$KEY_FILE" || { echo "Failed to set permissions on $KEY_FILE"; exit 1; }
+          echo "Permissions set to 600"
 
-          # 5️⃣ Exporter la variable pour Snowflake Python connector
-          export SNOWFLAKE_PRIVATE_KEY_PATH="$KEY_FILE" || { echo "❌ Failed to export SNOWFLAKE_PRIVATE_KEY_PATH"; exit 1; }
-          echo "✅ SNOWFLAKE_PRIVATE_KEY_PATH exported as $SNOWFLAKE_PRIVATE_KEY_PATH"
+          # Exporter la variable pour Snowflake Python connector
+          export SNOWFLAKE_PRIVATE_KEY_PATH="$KEY_FILE" || { echo "Failed to export SNOWFLAKE_PRIVATE_KEY_PATH"; exit 1; }
+          echo "SNOWFLAKE_PRIVATE_KEY_PATH exported as $SNOWFLAKE_PRIVATE_KEY_PATH"
    
 
           # -----------------------------
-          # 2️⃣ Activer options bash strictes pour logs et erreurs
+          # Activer options bash strictes pour logs et erreurs
           # -----------------------------
           set -o errexit   # Stoppe le workflow si une commande échoue
           set -o pipefail  # Capture erreurs dans les pipes
           set -o nounset   # Erreur si variable non définie
         
           # -----------------------------
-          # 3️⃣ Exécuter le script Python et gérer logs/erreurs
+          # Exécuter le script Python et gérer logs/erreurs
           # -----------------------------
           LOG_FILE=checks/logs/snowflake_setup.log
           mkdir -p checks/logs
         
           if python3 extract/run_snowflake_setup.py >> "$LOG_FILE" 2>&1; then
-              echo "✅ Snowflake setup script completed successfully."
+              echo "Snowflake setup script completed successfully."
           else
-              echo "❌ Snowflake setup script failed! See $LOG_FILE for details."
+              echo "Snowflake setup script failed! See $LOG_FILE for details."
               cat "$LOG_FILE"
               rm -f "$KEY_FILE"
               exit 1
           fi
         
           # -----------------------------
-          # 4️⃣ Nettoyage fichier clé
+          # Nettoyage fichier clé
           # -----------------------------
           rm -f "$KEY_FILE"
         shell: bash
@@ -146,21 +146,21 @@ jobs:
 
       - name: Pre-ingestion checks
         run: |
-          echo "🟢 Running pre-ingestion checks..."
+          echo "Running pre-ingestion checks..."
           python checks/pre_ingestion_check.py >> checks/logs/pre_ingestion_check.log 2>&1 \
-            || { echo "❌ Pre-ingestion checks failed. See checks/logs/pre_ingestion_check.log"; exit 1; }
+            || { echo "Pre-ingestion checks failed. See checks/logs/pre_ingestion_check.log"; exit 1; }
 
       - name: Download Parquet files
         run: |
-          echo "🟢 Downloading Parquet files..."
+          echo "Downloading Parquet files..."
           python extract/download_parquet.py >> checks/logs/download_parquet.log 2>&1 \
-            || { echo "❌ Parquet download failed. See checks/logs/download_parquet.log"; exit 1; }
+            || { echo "Parquet download failed. See checks/logs/download_parquet.log"; exit 1; }
 
       - name: Ingest to Snowflake
         run: |
-          echo "🟢 Running merge_dynamic ingestion..."
+          echo "Running merge_dynamic ingestion..."
           python load/merge_dynamic.py >> checks/logs/merge_dynamic.log 2>&1 \
-            || { echo "❌ ETL ingestion failed. See checks/logs/merge_dynamic.log"; exit 1; }
+            || { echo "ETL ingestion failed. See checks/logs/merge_dynamic.log"; exit 1; }
 
   # 🧩 Step 3: dbt Transformations & Docs
   dbt:
@@ -219,17 +219,17 @@ jobs:
           echo "⚙️ Running dbt transformations..."
           dbt run --profiles-dir ~/.dbt
 
-          echo "✅ Running dbt tests..."
+          echo "Running dbt tests..."
           dbt test --profiles-dir ~/.dbt
 
-          echo "📚 Generating dbt docs..."
+          echo "Generating dbt docs..."
           dbt docs generate --profiles-dir ~/.dbt
 
-          echo "📦 Saving dbt docs artifacts..."
+          echo "Saving dbt docs artifacts..."
           mkdir -p ../artifacts/dbt_docs
           cp -r target ../artifacts/dbt_docs
 
-          echo "📂 Copying dbt docs to GitHub Pages folder..."
+          echo "Copying dbt docs to GitHub Pages folder..."
           mkdir -p ../../docs/dbt_docs
           cp -r target/* ../../docs/dbt_docs/
 
