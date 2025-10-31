@@ -45,39 +45,13 @@ jobs:
         
           echo "🔹 Step 1: Preparing Snowflake private key file..."
 
-          echo "🔹 Step 1: Preparing Snowflake private key file..."
-
-          # Créer le fichier temporaire
-          KEY_FILE=$(mktemp /tmp/snowflake_key.XXXXXX.p8)
-          if [ ! -f "$KEY_FILE" ]; then
-            echo "❌ Failed to create temp file $KEY_FILE"
-            exit 1
-          fi
-
-          # Vérifier que la variable d'environnement existe
-          if [ -z "$SNOWFLAKE_PRIVATE_KEY" ]; then
-              echo "SNOWFLAKE_PRIVATE_KEY is empty or not set!"
-              exit 1
-          else
-              echo "SNOWFLAKE_PRIVATE_KEY is set (content hidden for security)"
-          fi
-          
-          if [ ! -r "$KEY_FILE" ]; then
-            echo "❌ Temp key file not readable!"
-            exit 1
-          fi
-
-          # Écrire la clé dans le fichier
-          echo "$SNOWFLAKE_PRIVATE_KEY" > "$KEY_FILE" || { echo "Failed to write key to $KEY_FILE"; exit 1; }
-          echo "Key written to $KEY_FILE"
-
-          # Restreindre les permissions
-          chmod 600 "$KEY_FILE" || { echo "Failed to set permissions on $KEY_FILE"; exit 1; }
-          echo "Permissions set to 600"
-
-          # Exporter la variable pour Snowflake Python connector
-          export SNOWFLAKE_PRIVATE_KEY_PATH="$KEY_FILE" || { echo "Failed to export SNOWFLAKE_PRIVATE_KEY_PATH"; exit 1; }
-          echo "SNOWFLAKE_PRIVATE_KEY_PATH exported as $SNOWFLAKE_PRIVATE_KEY_PATH"
+          # Préparer le fichier de clé privée dans le répertoire courant
+          echo "Step 1: Preparing Snowflake private key file..."
+          KEY_FILE=$(mktemp "$(pwd)/snowflake_key.XXXXXX.p8") || { echo "Failed to create temp key file"; exit 1; }
+          echo "$SNOWFLAKE_PRIVATE_KEY" > "$KEY_FILE" || { echo "Failed to write private key"; exit 1; }
+          chmod 600 "$KEY_FILE" || { echo "Failed to set permissions on key file"; exit 1; }
+          export SNOWFLAKE_PRIVATE_KEY_PATH="$KEY_FILE"
+          echo "Key file prepared at $KEY_FILE"
    
 
           # -----------------------------
