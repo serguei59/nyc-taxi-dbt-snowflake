@@ -16,25 +16,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-
       - name: Set up SnowSQL
         run: |
           SNOWSQL_HOME="$HOME/snowsql"
           mkdir -p $SNOWSQL_HOME
           cd $SNOWSQL_HOME
           
-          # Télécharger le dernier installateur SnowSQL Linux
           curl -L -o snowsql.deb https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.3.28/linux_x86_64/snowsql-1.3.28-linux_x86_64.deb
           
-          # Installer SnowSQL localement dans $HOME
           sudo dpkg -i snowsql.deb || sudo apt-get install -f -y
           
-          # Ajouter SnowSQL au PATH pour le job actuel
+          # Ajouter le binaire au PATH
           echo "$SNOWSQL_HOME/snowsql" >> $GITHUB_PATH
 
       - name: Verify SnowSQL installation
         run: |
-          snowsql --version
+          # Utiliser le chemin absolu si PATH ne prend pas effet immédiatement
+          $HOME/snowsql/snowsql --version
+
 
       
      
