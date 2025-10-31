@@ -16,7 +16,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install SnowSQL (robust)
+      - name: Install SnowSQL
         run: |
           sudo apt-get update
           sudo apt-get install -y curl libssl-dev libffi-dev
@@ -25,24 +25,18 @@ jobs:
           SNOWSQL_URL="https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/$SNOWSQL_BASH"
       
           echo "📦 Downloading SnowSQL installer..."
-          curl -L -O $SNOWSQL_URL || { echo "❌ Failed to download SnowSQL installer"; exit 1; }
-      
-          if [ ! -f "$SNOWSQL_BASH" ]; then
-            echo "❌ SnowSQL installer not found after download"
-            exit 1
-          fi
+          curl -L -O $SNOWSQL_URL || { echo "❌ Failed to download SnowSQL"; exit 1; }
       
           chmod +x $SNOWSQL_BASH
-          echo "⚙️ Installing SnowSQL in batch mode..."
-          ./$SNOWSQL_BASH -b -d $HOME/snowsql || { echo "❌ SnowSQL installation failed"; exit 1; }
+          echo "⚙️ Installing SnowSQL in $HOME/snowsql..."
+          ./$SNOWSQL_BASH -b -d $HOME/snowsql || { echo "❌ Installation failed"; exit 1; }
       
-          echo "✅ SnowSQL installed successfully."
           echo "$HOME/snowsql/bin" >> $GITHUB_PATH
       
-          echo "🔹 SnowSQL version check:"
+          echo "🔹 SnowSQL version:"
           snowsql -v || { echo "❌ snowsql not found in PATH"; exit 1; }
         shell: /usr/bin/bash -e {0}
-           
+      
       
      
       - name: Run clean install script
