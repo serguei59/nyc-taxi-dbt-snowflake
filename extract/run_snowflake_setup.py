@@ -54,7 +54,7 @@ def main():
     warehouse = os.environ.get("SNOWFLAKE_WAREHOUSE", "")
     database = os.environ.get("SNOWFLAKE_DATABASE", "")
     schema = os.environ.get("SNOWFLAKE_SCHEMA", "")
-    private_key_path = os.environ.get("SNOWFLAKE_PRIVATE_KEY_PATH")
+    private_key_path = os.environ.get("SNOWFLAKE_PRIVATE_KEY")
     private_key_passphrase = os.environ.get("SNOWFLAKE_PRIVATE_KEY_PASSPHRASE", "").encode()
     sql_file_path = os.environ.get("SNOWFLAKE_SQL_FILE", "sql/clean_install_nyc_taxi_db_v2.sql")
 
@@ -62,7 +62,7 @@ def main():
     for var_name, var_value in [
         ("SNOWFLAKE_ACCOUNT", account),
         ("SNOWFLAKE_USER", user),
-        ("SNOWFLAKE_PRIVATE_KEY_PATH", private_key_path)
+        ("SNOWFLAKE_PRIVATE_KEY", private_key_path)
     ]:
         if not var_value:
             logging.error(f"❌ Variable d'environnement manquante : {var_name}")
