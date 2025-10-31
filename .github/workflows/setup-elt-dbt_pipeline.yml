@@ -28,15 +28,15 @@ jobs:
           curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
           az version
 
+      
       - name: Install SnowSQL via pip
         run: |
-          python3 -m pip install --user snowflake-cli
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
+            python3 -m pip install --user snowflake-cli
+            echo "$HOME/.local/bin" >> $GITHUB_PATH
+        
       - name: Verify SnowSQL installation
         run: snowsql --version
-
-      
+              
      
       - name: Run clean install script
         env:
