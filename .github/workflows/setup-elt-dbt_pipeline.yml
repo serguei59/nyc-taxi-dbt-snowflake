@@ -12,45 +12,47 @@ jobs:
   # 🏗️ Step 1: Snowflake Setup
   snowflake_setup:
     runs-on: ubuntu-latest
-    steps:
-      - name: Download and install SnowSQL
-        run: |
-          # Variables de version
-          BOOTSTRAP_VERSION=1.4
-          VERSION=1.4.3
-      
-          # Répertoire d'installation cible
-          export SNOWSQL_DEST=$HOME/bin
-          mkdir -p $SNOWSQL_DEST
-      
-          # Télécharger le script d'installation depuis Azure
-          curl -O https://sfc-repo.azure.snowflakecomputing.com/snowsql/bootstrap/$BOOTSTRAP_VERSION/linux_x86_64/snowsql-$VERSION-linux_x86_64.bash
-      
-          # Rendre exécutable et installer
-          chmod +x snowsql-$VERSION-linux_x86_64.bash
-          bash snowsql-$VERSION-linux_x86_64.bash
-      
-          # Ajouter au PATH
-          echo "$HOME/bin" >> $GITHUB_PATH
-      
-      - name: Verify SnowSQL installation
-        run: snowsql --version
-      
+    env:
+      # 🟢 Variables de configuration non sensibles (en clair)
+      SNOWFLAKE_SQL_FILE: "extract/sql/cleaninstall.sql"
+      SNOWFLAKE_WAREHOUSE: "NYC_TAXI_WH_V2"
+      SNOWFLAKE_ROLE: "TRANSFORM"
+      SNOWFLAKE_DATABASE: "NYC_TAXI_DB_V2"
 
-     
-      - name: Run clean install script
-        env:
-          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
-          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+      # 🔒 Secrets sensibles (injectés depuis GitHub Secrets)
+      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+      SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
+      SNOWFLAKE_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
         run: |
-          snowsql -a $SNOWFLAKE_ACCOUNT \
-                  -u $SNOWFLAKE_USER \
-                  -p $SNOWFLAKE_PASSWORD \
-                  -r $SNOWFLAKE_ROLE \
-                  -f ./extract/sql/clean_install_nyc_taxi_db_v2.sql \
-            || { echo "❌ Snowflake setup failed"; exit 1; }
+          python3 -m pip install --upgrade pip
+          python3 -m pip install snowflake-connector-python
+
+      - name: Run Snowflake Setup Script
+        run: |
+          echo "🔹 Running Snowflake setup script..."
+          set -o errexit   # ❌ Stoppe le workflow si une commande échoue
+          set -o pipefail  # ❌ Capture erreurs dans les pipes
+          set -o nounset   # ❌ Erreur si variable non définie
+
+          if python3 extract/run_snowflake_setup.py; then
+              echo "✅ Snowflake setup script completed successfully."
+          else
+              echo "❌ Snowflake setup script failed!"
+              exit 1
+          fi
+        shell: bash
 
   # 🚀 Step 2: Python ETL
   python_etl:
