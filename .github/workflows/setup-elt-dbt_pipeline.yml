@@ -19,15 +19,15 @@ jobs:
       - name: Install SnowSQL
         run: |
           sudo apt-get update
-          sudo apt-get install -y curl libssl-dev libffi-dev
-          echo "📦 Downloading SnowSQL installer..."
-          curl -O --retry 3 https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowsql-1.2.26-linux_x86_64.bash
-          chmod +x snowsql-1.2.26-linux_x86_64.bash
-          echo "⚙️ Installing SnowSQL in batch mode..."
-          ./snowsql-1.2.26-linux_x86_64.bash -b -n -d ~/snowsql || (echo "❌ SnowSQL installation failed. Log below:" && cat /tmp/snowsql_install.log && exit 1)
+          sudo apt-get install -y curl
+          echo "📦 Downloading SnowSQL .deb package..."
+          curl -O https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowsql-1.2.26-linux_x86_64.deb
+          echo "⚙️ Installing SnowSQL..."
+          sudo apt install ./snowsql-1.2.26-linux_x86_64.deb -y
           echo "✅ SnowSQL installed successfully."
-          echo "$HOME/snowsql/bin" >> $GITHUB_PATH
+          snowsql -v
       
+     
       - name: Run clean install script
         env:
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
