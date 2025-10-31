@@ -43,14 +43,35 @@ jobs:
         run: |
           echo "🔹 Running Snowflake setup script..."
         
-          # -----------------------------
-          # 1️⃣ Préparer le fichier de clé privée
-          # -----------------------------
-          KEY_FILE=$(mktemp /tmp/snowflake_key.XXXXXX.p8)
-          echo "$SNOWFLAKE_PRIVATE_KEY" > "$KEY_FILE"
-          chmod 600 "$KEY_FILE"
-          export SNOWFLAKE_PRIVATE_KEY_PATH="$KEY_FILE"
-        
+          echo "🔹 Step 1: Preparing Snowflake private key file..."
+
+          echo "🔹 Step 1: Preparing Snowflake private key file..."
+
+          # 1️⃣ Créer le fichier temporaire
+          KEY_FILE=$(mktemp /tmp/snowflake_key.XXXXXX.p8) || { echo "❌ Failed to create temp file"; exit 1; }
+           "✅ Temp file created: $KEY_FILE"
+
+          # 2️⃣ Vérifier que la variable d'environnement existe
+          if [ -z "$SNOWFLAKE_PRIVATE_KEY" ]; then
+              echo "❌ SNOWFLAKE_PRIVATE_KEY is empty or not set!"
+              exit 1
+          else
+              echo "✅ SNOWFLAKE_PRIVATE_KEY is set (content hidden for security)"
+          fi
+
+          # 3️⃣ Écrire la clé dans le fichier
+          echo "$SNOWFLAKE_PRIVATE_KEY" > "$KEY_FILE" || { echo "❌ Failed to write key to $KEY_FILE"; exit 1; }
+          echo "✅ Key written to $KEY_FILE"
+
+          # 4️⃣ Restreindre les permissions
+          chmod 600 "$KEY_FILE" || { echo "❌ Failed to set permissions on $KEY_FILE"; exit 1; }
+          echo "✅ Permissions set to 600"
+
+          # 5️⃣ Exporter la variable pour Snowflake Python connector
+          export SNOWFLAKE_PRIVATE_KEY_PATH="$KEY_FILE" || { echo "❌ Failed to export SNOWFLAKE_PRIVATE_KEY_PATH"; exit 1; }
+          echo "✅ SNOWFLAKE_PRIVATE_KEY_PATH exported as $SNOWFLAKE_PRIVATE_KEY_PATH"
+   
+
           # -----------------------------
           # 2️⃣ Activer options bash strictes pour logs et erreurs
           # -----------------------------
