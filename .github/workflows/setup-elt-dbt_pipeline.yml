@@ -16,18 +16,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install SnowSQL
+      - name: Install SnowSQL via .deb
         run: |
           sudo apt-get update
           sudo apt-get install -y curl libssl-dev libffi-dev
-          echo "📦 Downloading SnowSQL installer..."
-          curl -O https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowsql-1.2.29-linux_x86_64.bash
-          chmod +x snowsql-1.2.29-linux_x86_64.bash
-          echo "⚙️ Installing SnowSQL in batch mode..."
-          ./snowsql-1.2.29-linux_x86_64.bash -b -d $HOME/snowsql
+      
+          echo "📦 Downloading SnowSQL .deb package..."
+          curl -L -o snowsql.deb https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowsql-1.2.29-linux_x86_64.deb
+      
+          echo "⚙️ Installing SnowSQL..."
+          sudo dpkg -i snowsql.deb || sudo apt-get install -f -y
+      
           echo "✅ SnowSQL installed successfully."
           echo "$HOME/snowsql/bin" >> $GITHUB_PATH
+      
+          echo "🔹 SnowSQL version:"
           snowsql -v
+        shell: bash     
       
      
       - name: Run clean install script
