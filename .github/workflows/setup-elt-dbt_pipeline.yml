@@ -48,7 +48,7 @@ jobs:
           # Préparer le fichier de clé privée dans le répertoire courant
           echo "Step 1: Preparing Snowflake private key file..."
           KEY_FILE=$(mktemp "$(pwd)/snowflake_key.XXXXXX.p8") || { echo "Failed to create temp key file"; exit 1; }
-          echo "$SNOWFLAKE_PRIVATE_KEY" > "$KEY_FILE" || { echo "Failed to write private key"; exit 1; }
+          echo "$SNOWFLAKE_PRIVATE_KEY" | tr -d '\r' > "$KEY_FILE" || { echo "Failed to write private key"; exit 1; }
           chmod 600 "$KEY_FILE" || { echo "Failed to set permissions on key file"; exit 1; }
           export SNOWFLAKE_PRIVATE_KEY_PATH="$KEY_FILE"
           echo "Key file prepared at $KEY_FILE"
