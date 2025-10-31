@@ -8,6 +8,7 @@ import logging
 from snowflake_utils import execute_sql
 import csv
 from datetime import datetime
+from checks.writer_report_xlsx import save_ingestion_report_xlsx
 
 # 1️⃣ Chargement des variables d'environnement
 load_dotenv()
@@ -235,7 +236,7 @@ def process_parquet_files():
         removed = before - len(df)
         print(f"🧹 {removed} duplicate rows removed before upload.")
         try:
-            logging.info(f"{removed} duplicates removed from {file.name}")
+            logging.info(f"{removed} duplicates removed from {f.name}")
         except Exception:
             pass
 
@@ -252,7 +253,7 @@ def process_parquet_files():
             continue
         print(f"✅ {nrows} lignes dans {table_buffer}")
         try:
-            logging.info(f"{nrows} lignes insérées depuis {file.name}")
+            logging.info(f"{nrows} lignes insérées depuis {f.name}")
         except Exception:
             pass
 
@@ -276,7 +277,7 @@ def process_parquet_files():
         execute_sql(merge_sql)
         print("🔁 MERGE terminé\n")
         try:
-            logging.info(f"MERGE terminé pour {file.name}")
+            logging.info(f"MERGE terminé pour {f.name}")
         except Exception:
             pass
 
@@ -284,7 +285,7 @@ def process_parquet_files():
         execute_sql(f"TRUNCATE TABLE {table_buffer}")
         print("🔁 BUFFER vidé\n")
 
-# 7️⃣ Sauvegarde du report
+""" # 7️⃣ Sauvegarde du report
 def save_ingestion_report(stats: dict):
     report_dir = Path(__file__).parent / "verifications"
     report_dir.mkdir(parents=True, exist_ok=True)
@@ -317,7 +318,7 @@ def save_ingestion_report(stats: dict):
             writer.writerow(headers)
         writer.writerow(row)
 
-    print(f"📊 Ingestion report saved to: {report_file}")
+    print(f"📊 Ingestion report saved to: {report_file}") """
 
 # 8️⃣ Lancement principal
 if __name__ == "__main__":
@@ -358,7 +359,7 @@ if __name__ == "__main__":
                 results[check_name] = result[0][0] if result else None
             print(f"{check_name}: {result[0][0] if result else 'N/A'}")
 
-        save_ingestion_report(results)
+        save_ingestion_report_xlsx(results)
 
     except Exception as e:
         print(f"❌ Erreur pendant le processus d'ingestion: {e}")

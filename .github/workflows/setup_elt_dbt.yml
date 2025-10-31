@@ -41,12 +41,13 @@ jobs:
     needs: snowflake_setup
 
     env:
-      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-      SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+      SNOWFLAKE_USER: DBT
+      SNOWFLAKE_PASSWORD: ${{ secrets.DBT_PASSWORD }}
       SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
       SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
       SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
       SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
+      SNOWFLAKE_ROLE: TRANSFORM
 
     steps:
       - name: Checkout repo
@@ -71,21 +72,16 @@ jobs:
       - name: Pre-ingestion checks
         run: python verifications/pre_ingestion_check.py
         env:
-            SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-            SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
-            SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+            SNOWFLAKE_USER: DBT
+            SNOWFLAKE_PASSWORD: ${{ secrets.DBT_PASSWORD }}
         
       - name: Run Python ETL
         run: |
           python extract/download_parquet.py
           python load/merge_dynamic.py
+      
 
-      - name: Ingest reporting
-        run: |
-          python verifications/writer_report_xslx.py
-          
-
-  # 🧩 Étape 3 : dbt transformations & tests
+  # 🧩 Étape 3 : dbt transformations ,tests , docs
   dbt:
     name: Run dbt Pipeline
     runs-on: ubuntu-latest
@@ -114,9 +110,8 @@ jobs:
             outputs:
               dev:
                 type: snowflake
-                account: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-                user: ${{ secrets.SNOWFLAKE_USER }}
-                password: ${{ secrets.SNOWFLAKE_PASSWORD }}
+                user: DBT
+                password: ${{ secrets.DBT_PASSWORD }}
                 role: TRANSFORM
                 warehouse: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
                 database: ${{ secrets.SNOWFLAKE_DATABASE }}
@@ -130,19 +125,33 @@ jobs:
         run: |
           # 📦 Télécharge les dépendances dbt
           dbt deps --profiles-dir ~/.dbt
-
+        
           # 💾 Recharge les seeds si présents
           dbt seed --full-refresh --profiles-dir ~/.dbt
-
+        
           # ⚙️ Exécute toutes les transformations (models)
           dbt run --profiles-dir ~/.dbt
-
+        
           # ✅ Lance les tests de qualité
           dbt test --profiles-dir ~/.dbt
-
+        
           # 📚 Génère la documentation dbt
           dbt docs generate --profiles-dir ~/.dbt
-
+        
           # 📦 Sauvegarde les fichiers de documentation comme artefacts
           mkdir -p ../artifacts/dbt_docs
           cp -r target ../artifacts/dbt_docs
+        
+          # 📂 Copie dans le dossier GitHub Pages
+          mkdir -p ../../docs/dbt_docs
+          cp -r target/* ../../docs/dbt_docs/
+        
+      - name: Commit & push dbt docs for GitHub Pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/dbt_docs
+          git commit -m "Update dbt docs [ci skip]" || echo "No changes to commit"
+          git push origin main
+
+          

@@ -25,7 +25,7 @@ create user if not exists DBT
   password = 'Password123!'
   default_role = TRANSFORM
   default_warehouse = NYC_TAXI_WH_V2
-  must_change_password = true;
+  must_change_password = false;
 
 -- 5️⃣ Grant TRANSFORM role to DBT user
 grant role TRANSFORM to user DBT;
