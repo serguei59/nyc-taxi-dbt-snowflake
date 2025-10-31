@@ -16,26 +16,34 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install SnowSQL
+      - name: Install SnowSQL (lightweight, no sudo)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y curl libssl-dev libffi-dev
-      
+          # Définir les variables
+          SNOWSQL_DIR="$HOME/snowsql"
           SNOWSQL_BASH="snowsql-1.2.29-linux_x86_64.bash"
           SNOWSQL_URL="https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/$SNOWSQL_BASH"
       
+          # Créer le répertoire d'installation
+          mkdir -p $SNOWSQL_DIR
+      
+          # Télécharger l'installateur
           echo "📦 Downloading SnowSQL installer..."
-          curl -L -O $SNOWSQL_URL || { echo "❌ Failed to download SnowSQL"; exit 1; }
+          curl -L -o $HOME/$SNOWSQL_BASH $SNOWSQL_URL
       
-          chmod +x $SNOWSQL_BASH
-          echo "⚙️ Installing SnowSQL in $HOME/snowsql..."
-          ./$SNOWSQL_BASH -b -d $HOME/snowsql || { echo "❌ Installation failed"; exit 1; }
+          # Rendre l'installateur exécutable
+          chmod +x $HOME/$SNOWSQL_BASH
       
-          echo "$HOME/snowsql/bin" >> $GITHUB_PATH
+          # Installer SnowSQL dans le répertoire utilisateur
+          echo "⚙️ Installing SnowSQL in $SNOWSQL_DIR..."
+          bash $HOME/$SNOWSQL_BASH -b -d $SNOWSQL_DIR || { echo "❌ SnowSQL install failed"; exit 1; }
       
+          # Ajouter SnowSQL au PATH pour les étapes suivantes
+          echo "$SNOWSQL_DIR/bin" >> $GITHUB_PATH
+      
+          # Vérifier l'installation
           echo "🔹 SnowSQL version:"
-          snowsql -v || { echo "❌ snowsql not found in PATH"; exit 1; }
-        shell: /usr/bin/bash -e {0}
+          $SNOWSQL_DIR/bin/snowsql -v
+        shell: bash -e {0}
       
       
      
