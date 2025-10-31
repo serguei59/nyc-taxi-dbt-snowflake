@@ -8,6 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:
+
+  # 🏗️ Step 1: Snowflake Setup
   snowflake_setup:
     runs-on: ubuntu-latest
     steps:
@@ -17,11 +19,15 @@ jobs:
       - name: Install SnowSQL
         run: |
           sudo apt-get update
-          sudo apt-get install -y libssl-dev libffi-dev
-          curl -O https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowsql-1.2.26-linux_x86_64.bash
+          sudo apt-get install -y curl libssl-dev libffi-dev
+          echo "📦 Downloading SnowSQL installer..."
+          curl -O --retry 3 https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowsql-1.2.26-linux_x86_64.bash
           chmod +x snowsql-1.2.26-linux_x86_64.bash
-          ./snowsql-1.2.26-linux_x86_64.bash -y
-
+          echo "⚙️ Installing SnowSQL in batch mode..."
+          ./snowsql-1.2.26-linux_x86_64.bash -b -n -d ~/snowsql || (echo "❌ SnowSQL installation failed. Log below:" && cat /tmp/snowsql_install.log && exit 1)
+          echo "✅ SnowSQL installed successfully."
+          echo "$HOME/snowsql/bin" >> $GITHUB_PATH
+      
       - name: Run clean install script
         env:
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
@@ -33,13 +39,14 @@ jobs:
                   -u $SNOWFLAKE_USER \
                   -p $SNOWFLAKE_PASSWORD \
                   -r $SNOWFLAKE_ROLE \
-                  -f ./extract/sql/clean_install_nyc_taxi_db_v2.sql
-  # 🚀 Étape 2 : ETL Python
+                  -f ./extract/sql/clean_install_nyc_taxi_db_v2.sql \
+            || { echo "❌ Snowflake setup failed"; exit 1; }
+
+  # 🚀 Step 2: Python ETL
   python_etl:
     name: Run Python ETL (Download + Ingest)
     runs-on: ubuntu-latest
     needs: snowflake_setup
-
     env:
       SNOWFLAKE_USER: DBT
       SNOWFLAKE_PASSWORD: ${{ secrets.DBT_PASSWORD }}
@@ -63,29 +70,39 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Ensure log & data folders exist
+      - name: Ensure data & logs folders exist
         run: |
-          mkdir -p logs
           mkdir -p extract/data
-          mkdir -p verifications
+          mkdir -p checks/logs
 
       - name: Pre-ingestion checks
-        run: python verifications/pre_ingestion_check.py
-        env:
-            SNOWFLAKE_USER: DBT
-            SNOWFLAKE_PASSWORD: ${{ secrets.DBT_PASSWORD }}
-        
-      - name: Run Python ETL
         run: |
-          python extract/download_parquet.py
-          python load/merge_dynamic.py
-      
+          echo "🟢 Running pre-ingestion checks..."
+          python checks/pre_ingestion_check.py >> checks/logs/pre_ingestion_check.log 2>&1 \
+            || { echo "❌ Pre-ingestion checks failed. See checks/logs/pre_ingestion_check.log"; exit 1; }
 
-  # 🧩 Étape 3 : dbt transformations ,tests , docs
+      - name: Download Parquet files
+        run: |
+          echo "🟢 Downloading Parquet files..."
+          python extract/download_parquet.py >> checks/logs/download_parquet.log 2>&1 \
+            || { echo "❌ Parquet download failed. See checks/logs/download_parquet.log"; exit 1; }
+
+      - name: Ingest to Snowflake
+        run: |
+          echo "🟢 Running merge_dynamic ingestion..."
+          python load/merge_dynamic.py >> checks/logs/merge_dynamic.log 2>&1 \
+            || { echo "❌ ETL ingestion failed. See checks/logs/merge_dynamic.log"; exit 1; }
+
+  # 🧩 Step 3: dbt Transformations & Docs
   dbt:
     name: Run dbt Pipeline
     runs-on: ubuntu-latest
-    needs: python_etl  # attend la fin du job ETL
+    needs: python_etl
+    env:
+      DBT_PASSWORD: ${{ secrets.DBT_PASSWORD }}
+      SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+      SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
+      SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
 
     steps:
       - name: Checkout repo
@@ -123,35 +140,34 @@ jobs:
       - name: Run dbt
         working-directory: ./nyc_taxi_dbt_snowflake
         run: |
-          # 📦 Télécharge les dépendances dbt
+          set -e
+          echo "📦 Installing dbt dependencies..."
           dbt deps --profiles-dir ~/.dbt
-        
-          # 💾 Recharge les seeds si présents
+
+          echo "💾 Refreshing dbt seeds..."
           dbt seed --full-refresh --profiles-dir ~/.dbt
-        
-          # ⚙️ Exécute toutes les transformations (models)
+
+          echo "⚙️ Running dbt transformations..."
           dbt run --profiles-dir ~/.dbt
-        
-          # ✅ Lance les tests de qualité
+
+          echo "✅ Running dbt tests..."
           dbt test --profiles-dir ~/.dbt
-        
-          # 📚 Génère la documentation dbt
+
+          echo "📚 Generating dbt docs..."
           dbt docs generate --profiles-dir ~/.dbt
-        
-          # 📦 Sauvegarde les fichiers de documentation comme artefacts
+
+          echo "📦 Saving dbt docs artifacts..."
           mkdir -p ../artifacts/dbt_docs
           cp -r target ../artifacts/dbt_docs
-        
-          # 📂 Copie dans le dossier GitHub Pages
+
+          echo "📂 Copying dbt docs to GitHub Pages folder..."
           mkdir -p ../../docs/dbt_docs
           cp -r target/* ../../docs/dbt_docs/
-        
+
       - name: Commit & push dbt docs for GitHub Pages
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/dbt_docs
           git commit -m "Update dbt docs [ci skip]" || echo "No changes to commit"
-          git push origin main
-
-          
+          git push origin dev

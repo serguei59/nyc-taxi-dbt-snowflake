@@ -70,10 +70,10 @@ create warehouse if not exists NYC_TAXI_WH
 create role if not exists TRANSFORM;
 
 create user if not exists DBT
-  password = 'Password123!'
+  password = 'custom_password!'
   default_role = TRANSFORM
   default_warehouse = NYC_TAXI_WH
-  must_change_password = true;
+  must_change_password = false;
 
 grant role TRANSFORM to user DBT;
 \`\`\`
