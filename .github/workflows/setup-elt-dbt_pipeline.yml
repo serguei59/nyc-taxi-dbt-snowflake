@@ -49,7 +49,7 @@ jobs:
 
           # Créer le fichier temporaire
           KEY_FILE=$(mktemp /tmp/snowflake_key.XXXXXX.p8) || { echo " Failed to create temp file"; exit 1; }
-           " Temp file created: $KEY_FILE"
+          echo " Temp file created: $KEY_FILE"
 
           # Vérifier que la variable d'environnement existe
           if [ -z "$SNOWFLAKE_PRIVATE_KEY" ]; then
