@@ -48,8 +48,11 @@ jobs:
           echo "🔹 Step 1: Preparing Snowflake private key file..."
 
           # Créer le fichier temporaire
-          KEY_FILE=$(mktemp /tmp/snowflake_key.XXXXXX.p8) || { echo " Failed to create temp file"; exit 1; }
-          echo " Temp file created: $KEY_FILE"
+          KEY_FILE=$(mktemp /tmp/snowflake_key.XXXXXX.p8)
+          if [ ! -f "$KEY_FILE" ]; then
+            echo "❌ Failed to create temp file $KEY_FILE"
+            exit 1
+          fi
 
           # Vérifier que la variable d'environnement existe
           if [ -z "$SNOWFLAKE_PRIVATE_KEY" ]; then
@@ -57,6 +60,11 @@ jobs:
               exit 1
           else
               echo "SNOWFLAKE_PRIVATE_KEY is set (content hidden for security)"
+          fi
+          
+          if [ ! -r "$KEY_FILE" ]; then
+            echo "❌ Temp key file not readable!"
+            exit 1
           fi
 
           # Écrire la clé dans le fichier
