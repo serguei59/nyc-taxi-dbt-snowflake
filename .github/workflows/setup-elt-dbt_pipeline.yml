@@ -13,30 +13,30 @@ jobs:
   snowflake_setup:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Update apt
-        run: sudo apt-get update && sudo apt-get upgrade -y
-
-      - name: Install prerequisites
+      - name: Download and install SnowSQL
         run: |
-          sudo apt-get install -y curl python3 python3-pip libffi-dev libssl-dev
-
-      - name: Install Azure CLI
-        run: |
-          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-          az version
-
+          # Variables de version
+          BOOTSTRAP_VERSION=1.4
+          VERSION=1.4.3
       
-      - name: Install SnowSQL via pip
-        run: |
-            python3 -m pip install --user snowflake-cli
-            echo "$HOME/.local/bin" >> $GITHUB_PATH
-        
+          # Répertoire d'installation cible
+          export SNOWSQL_DEST=$HOME/bin
+          mkdir -p $SNOWSQL_DEST
+      
+          # Télécharger le script d'installation depuis Azure
+          curl -O https://sfc-repo.azure.snowflakecomputing.com/snowsql/bootstrap/$BOOTSTRAP_VERSION/linux_x86_64/snowsql-$VERSION-linux_x86_64.bash
+      
+          # Rendre exécutable et installer
+          chmod +x snowsql-$VERSION-linux_x86_64.bash
+          bash snowsql-$VERSION-linux_x86_64.bash
+      
+          # Ajouter au PATH
+          echo "$HOME/bin" >> $GITHUB_PATH
+      
       - name: Verify SnowSQL installation
         run: snowsql --version
-              
+      
+
      
       - name: Run clean install script
         env:
