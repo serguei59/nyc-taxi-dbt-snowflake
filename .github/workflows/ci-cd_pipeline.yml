@@ -1,65 +1,22 @@
-name: Full ETL + Snowflake OAuth Inline
+name: 🧊 Setup Snowflake DB
 
 on:
-  push:
-    branches:
-      - dev
-      - main
   workflow_dispatch:
 
 jobs:
-
-  # -----------------------------
-  # 0️⃣ Inspect GitHub Token
-  # -----------------------------
-  inspect-github-token:
+  setup_snowflake:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
-
-      - name: Inspect GitHub Token
-        env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python3 - <<EOF
-          import os, base64, json
-
-          token = os.getenv('GITHUB_TOKEN')
-          if not token:
-              print("❌ GITHUB_TOKEN not set")
-              exit(1)
-
-          parts = token.split('.')
-          if len(parts) == 3:
-              payload_b64 = parts[1] + '==='
-              try:
-                  payload_bytes = base64.urlsafe_b64decode(payload_b64)
-                  payload = json.loads(payload_bytes)
-                  print("✅ Token payload (decoded):")
-                  print(json.dumps(payload, indent=2))
-              except Exception as e:
-                  print("❌ Failed to decode JWT payload:", e)
-          else:
-              print("ℹ Token format: opaque (non décodable)")
-          EOF
-
-  # -----------------------------
-  # 1️⃣ Generate Snowflake OAuth token & run SQL
-  # -----------------------------
-  run-snowflake-sql:
-    runs-on: ubuntu-latest
-    needs: inspect-github-token
     env:
       SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
       SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
       SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
-      SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
       SNOWFLAKE_OAUTH_CLIENT_ID: ${{ secrets.SNOWFLAKE_OAUTH_CLIENT_ID }}
       SNOWFLAKE_OAUTH_CLIENT_SECRET: ${{ secrets.SNOWFLAKE_OAUTH_CLIENT_SECRET }}
+
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -68,34 +25,46 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python3 -m pip install --upgrade pip
-          pip install requests
+          python -m pip install --upgrade pip
+          pip install requests jq
 
-      - name: Generate OAuth Token & Run SQL
-        id: run_sql
+      - name: Generate OAuth Token
+        id: get_token
         run: |
-          echo "🔹 Requesting Snowflake OAuth token..."
-          TOKEN=$(python3 - <<EOF
-            import os, requests, json
-
-            url = f"https://{os.environ['SNOWFLAKE_ACCOUNT']}.snowflakecomputing.com/session/v1/login-request?warehouse={os.environ['SNOWFLAKE_WAREHOUSE']}&database={os.environ['SNOWFLAKE_DATABASE']}&schema={os.environ['SNOWFLAKE_SCHEMA']}"
-            payload = {
-                "data": {
-                    "CLIENT_ID": os.environ['SNOWFLAKE_OAUTH_CLIENT_ID'],
-                    "CLIENT_SECRET": os.environ['SNOWFLAKE_OAUTH_CLIENT_SECRET']
-                }
-            }
-            resp = requests.post(url, json=payload)
-            resp.raise_for_status()
-            print(resp.json()['data']['TOKEN'])
-            EOF
-          )
-            
+          TOKEN=$(python scripts/get_snowflake_token.py)
+          echo "SNOWFLAKE_TOKEN=$TOKEN" >> $GITHUB_ENV
           echo "✅ Token obtained."
 
-          echo "🔹 Running SQL on Snowflake..."
-          curl -X POST "https://${{ secrets.SNOWFLAKE_ACCOUNT }}.snowflakecomputing.com/api/v2/statements" \
-            -H "Authorization: Bearer $TOKEN" \
+      - name: Run SQL Script in Snowflake
+        id: run_sql
+        run: |
+          echo "🔹 Running clean_install_nyc_taxi_db_v2.sql..."
+          SQL=$(cat clean_install_nyc_taxi_db_v2.sql | tr '\n' ' ')
+          RESPONSE=$(curl -s -X POST "https://${{ secrets.SNOWFLAKE_ACCOUNT }}.snowflakecomputing.com/api/v2/statements" \
+            -H "Authorization: Bearer $SNOWFLAKE_TOKEN" \
             -H "Content-Type: application/json" \
-            -d '{"statement":"SELECT CURRENT_USER();"}
+            -d "{\"statement\": \"$SQL\"}")
+          echo "$RESPONSE" | jq '.' > response.json
+          echo "RESPONSE=$(cat response.json)" >> $GITHUB_ENV
 
+      - name: ✅ Verify execution status
+        run: |
+          STATUS=$(jq -r '.statementHandle' response.json)
+          if [ -z "$STATUS" ]; then
+            echo "❌ No statement handle returned by Snowflake."
+            exit 1
+          fi
+
+          echo "🔍 Checking execution result..."
+          RESULT=$(curl -s -X GET "https://${{ secrets.SNOWFLAKE_ACCOUNT }}.snowflakecomputing.com/api/v2/statements/$STATUS" \
+            -H "Authorization: Bearer $SNOWFLAKE_TOKEN")
+          
+          STATE=$(echo "$RESULT" | jq -r '.statement.status')
+          echo "Execution status: $STATE"
+          if [ "$STATE" != "Success" ]; then
+            echo "❌ SQL execution failed:"
+            echo "$RESULT" | jq '.'
+            exit 1
+          fi
+
+          echo "✅ SQL executed successfully!"
