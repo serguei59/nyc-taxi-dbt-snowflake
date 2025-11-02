@@ -40,7 +40,7 @@ jobs:
                   print("❌ Failed to decode JWT payload:", e)
           else:
               print("ℹ Token format: opaque (non décodable)")
-EOF
+          EOF
 
   # -----------------------------
   # 1️⃣ Generate Snowflake OAuth token & run SQL
