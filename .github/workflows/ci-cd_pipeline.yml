@@ -1,6 +1,10 @@
 name: 🧊 Setup Snowflake DB
 
 on:
+  push:
+    branches:
+      - dev
+      - main  
   workflow_dispatch:
 
 jobs:
