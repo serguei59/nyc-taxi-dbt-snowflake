@@ -1,5 +1,9 @@
 # 🧱 Data Transformation Pipeline – NYC Taxi Data (dbt + Snowflake)
 
+**Navigation:**  
+[Home](./index.md) • [Setup](./setup.md) • [Ingestion](./ingestion.md) • [dbt_test](./data_quality.md)
+
+
 ## 🎯 Objective
 
 This section of the project implements the **data transformation and modeling pipeline** in **Snowflake** using **dbt Core**, fully aligned with industrial best practices.

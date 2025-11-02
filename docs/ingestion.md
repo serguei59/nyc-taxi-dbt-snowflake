@@ -1,5 +1,10 @@
 # 🧩 Data Ingestion Pipeline – NYC Taxi Data (Snowflake + Python)
 
+
+**Navigation:**  
+[Home](./index.md) • [Setup](./setup.md) • [Transformations](./transformations.md)• [dbt_test](./data_quality.md)
+
+
 This module handles the **automated and incremental ingestion** of `.parquet` files into **Snowflake**, using public NYC Taxi & Limousine Commission data.
 
 ---

@@ -9,22 +9,17 @@ on:
 
 jobs:
 
-  # 🏗️ Step 1: Snowflake Setup
-  snowflake_setup:
+  # 🔐 Step 0: Get Snowflake OAuth Token
+  run_snowflake_sql:
+    name: Generate Token & Run SQL
     runs-on: ubuntu-latest
     env:
-      # 🟢 Variables de configuration non sensibles (en clair)
-      SNOWFLAKE_SQL_FILE: "extract/sql/cleaninstall.sql"
-      SNOWFLAKE_WAREHOUSE: "NYC_TAXI_WH_V2"
-      SNOWFLAKE_ROLE: "TRANSFORM"
-      SNOWFLAKE_DATABASE: "NYC_TAXI_DB_V2"
-
-      # 🔒 Secrets sensibles (injectés depuis GitHub Secrets)
       SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-      SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
-      SNOWFLAKE_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
-
+      SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
+      SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
+      SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+      SNOWFLAKE_OAUTH_CLIENT_ID: ${{ secrets.SNOWFLAKE_OAUTH_CLIENT_ID }}
+      SNOWFLAKE_OAUTH_CLIENT_SECRET: ${{ secrets.SNOWFLAKE_OAUTH_CLIENT_SECRET }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -37,71 +32,65 @@ jobs:
       - name: Install dependencies
         run: |
           python3 -m pip install --upgrade pip
-          python3 -m pip install snowflake-connector-python
+          pip install requests jq
 
-      - name: Run Snowflake Setup Script
+      - name: Ensure logs folder exists
+        run: mkdir -p checks/logs
+
+      - name: Generate OAuth Token & Run SQL
+        id: run_sql
         run: |
-          echo "🔹 Running Snowflake setup script..."
-        
-          echo "🔹 Step 1: Preparing Snowflake private key file..."
-          WORK_DIR=$(pwd)
-          KEY_FILE="${WORK_DIR}/snowflake_key_$(date +%s).p8"
+          echo "🔹 Requesting OAuth token..."
+          TOKEN=$(python3 - <<EOF
+          import requests, os, json
+          url = f"https://{os.environ['SNOWFLAKE_ACCOUNT']}.snowflakecomputing.com/session/v1/login-request?warehouse={os.environ['SNOWFLAKE_WAREHOUSE']}&database={os.environ['SNOWFLAKE_DATABASE']}&schema={os.environ['SNOWFLAKE_SCHEMA']}"
+          payload = {"data":{"CLIENT_ID": os.environ['SNOWFLAKE_OAUTH_CLIENT_ID'], "CLIENT_SECRET": os.environ['SNOWFLAKE_OAUTH_CLIENT_SECRET']}}
+          resp = requests.post(url, json=payload)
+          resp.raise_for_status()
+          print(resp.json()['data']['TOKEN'])
+          EOF
+          )
 
-          if [ -z "${SNOWFLAKE_PRIVATE_KEY:-}" ]; then
-            echo "❌ Error: SNOWFLAKE_PRIVATE_KEY is not set."
-            exit 1
-          fi
-
-          echo "$SNOWFLAKE_PRIVATE_KEY" > "$KEY_FILE"
-          chmod 600 "$KEY_FILE"
-          export SNOWFLAKE_PRIVATE_KEY_PATH="$KEY_FILE"
-          echo "🔹 Key file created at: $KEY_FILE"
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
+          echo "✅ OAuth token successfully obtained."
           
 
-          # -----------------------------
-          # Activer options bash strictes pour logs et erreurs
-          # -----------------------------
-          set -o errexit   # Stoppe le workflow si une commande échoue
-          set -o pipefail  # Capture erreurs dans les pipes
-          set -o nounset   # Erreur si variable non définie
-        
-          # -----------------------------
-          # Exécuter le script Python et gérer logs/erreurs
-          # -----------------------------
-          LOG_FILE=checks/logs/snowflake_setup.log
-          mkdir -p checks/logs
-        
-          if python3 extract/run_snowflake_setup.py >> "$LOG_FILE" 2>&1; then
-              echo "Snowflake setup script completed successfully."
-          else
-              echo "Snowflake setup script failed! See $LOG_FILE for details."
-              cat "$LOG_FILE"
-              rm -f "$KEY_FILE"
-              exit 1
-          fi
-        
-          # -----------------------------
-          # Nettoyage fichier clé
-          # -----------------------------
-          rm -f "$KEY_FILE"
-        shell: bash
-        env:
-          SNOWFLAKE_SQL_FILE: extract/sql/cleaninstall.sql
-          SNOWFLAKE_WAREHOUSE: NYC_TAXI_WH_V2
-          SNOWFLAKE_ROLE: TRANSFORM
-          SNOWFLAKE_DATABASE: NYC_TAXI_DB_V2
-          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-          SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
-          SNOWFLAKE_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
-        
-      
+          # --- Step A: SQL test query ---
+          TEST_SQL='SELECT CURRENT_USER(), CURRENT_REGION(), CURRENT_TIMESTAMP();'
+          echo "Running test SQL..."
+          RESPONSE=$(curl -s -X POST "https://${{ env.SNOWFLAKE_ACCOUNT }}.snowflakecomputing.com/api/v2/statements" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"statement\":\"$TEST_SQL\"}")
+
+          echo "$RESPONSE" | jq . > checks/logs/test_sql_response.json
+          echo "Test query executed."
+
+          # --- Step B: Run full SQL file ---
+          SQL_FILE="extract/sql/clean_install_nyc_taxi_db_v2.sql"
+          SQL_STATEMENT=$(awk '{printf "%s ", $0}' "$SQL_FILE")
+
+          echo "Running full SQL file..."
+          RESPONSE=$(curl -s -X POST "https://${{ env.SNOWFLAKE_ACCOUNT }}.snowflakecomputing.com/api/v2/statements" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"statement\":\"$SQL_STATEMENT\"}")
+
+          echo "$RESPONSE" | jq . > checks/logs/full_sql_response.json
+          echo "Full SQL file executed successfully."
+
+      - name: Upload all logs
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: snowflake-logs
+          path: checks/logs/         
          
   # 🚀 Step 2: Python ETL
   python_etl:
     name: Run Python ETL (Download + Ingest)
     runs-on: ubuntu-latest
-    needs: snowflake_setup
+    needs: run_snowflake_sql
     env:
       SNOWFLAKE_USER: DBT
       SNOWFLAKE_PASSWORD: ${{ secrets.DBT_PASSWORD }}

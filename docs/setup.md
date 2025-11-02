@@ -1,9 +1,8 @@
 
---- 
-title: "Snowflake Setup – NYC Yellow Taxi Project"
----
-
 # ✅ Snowflake Setup – NYC Yellow Taxi Project
+
+**Navigation:**  
+[Home](./index.md) • [Ingestion](./ingestion.md) • [Transformations](./transformations.md) • [dbt_test](./data_quality.md)
 
 This document provides the complete setup guide to initialize Snowflake infrastructure and configure a local or CI data engineering environment used by the NYC Taxi dbt project.
 

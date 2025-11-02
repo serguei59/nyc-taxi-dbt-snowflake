@@ -17,8 +17,9 @@ This project automates the full ETL pipeline for NYC Taxi data and runs dbt tran
 
 - [1. Snowflake Setup](./setup.md)
 - [2. Data Ingestion (Python ETL)](./ingestion.md)
-- [3. Data Transformations (dbt)](./transformation.md)
+- [3. Data Transformations (dbt)](./transformations.md)
 - [4. dbt Documentation](./dbt_docs/index.html) (generated automatically)
+- [5. dbt_test](./data_quality.md)
 
 ## Quick Start
 
@@ -48,6 +49,4 @@ Create the following repository secrets:
 ### Artifacts
 - dbt documentation and reports are saved in `artifacts/dbt_docs/` for review.
 
-### Navigation
-- [1. Snowflake Setup](./setup.md)
 
