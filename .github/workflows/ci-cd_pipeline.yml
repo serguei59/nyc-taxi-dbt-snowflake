@@ -35,7 +35,7 @@ jobs:
       - name: Generate OAuth Token
         id: get_token
         run: |
-          TOKEN=$(python scripts/get_snowflake_token.py)
+          TOKEN=$(python extract/get_snowflake_token.py)
           echo "SNOWFLAKE_TOKEN=$TOKEN" >> $GITHUB_ENV
           echo "✅ Token obtained."
 
