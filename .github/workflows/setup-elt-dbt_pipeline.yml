@@ -44,10 +44,10 @@ jobs:
         
           url = f"https://{os.environ['SNOWFLAKE_ACCOUNT']}.snowflakecomputing.com/session/v1/login-request?warehouse={os.environ['SNOWFLAKE_WAREHOUSE']}&database={os.environ['SNOWFLAKE_DATABASE']}&schema={os.environ['SNOWFLAKE_SCHEMA']}"
           payload = {
-            "data": {
-                "CLIENT_ID": os.environ['SNOWFLAKE_OAUTH_CLIENT_ID'],
-                "CLIENT_SECRET": os.environ['SNOWFLAKE_OAUTH_CLIENT_SECRET']
-            }
+              "data": {
+                  "CLIENT_ID": os.environ['SNOWFLAKE_OAUTH_CLIENT_ID'],
+                  "CLIENT_SECRET": os.environ['SNOWFLAKE_OAUTH_CLIENT_SECRET']
+              }
           }
         
           resp = requests.post(url, json=payload)
@@ -57,6 +57,11 @@ jobs:
             )
             echo "Token obtained: $TOKEN"
         
+            curl -s -X POST "https://${SNOWFLAKE_ACCOUNT}.snowflakecomputing.com/api/v2/statements" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"statement": "SELECT CURRENT_ROLE();"}' | jq .
+            
       - name: Execute SQL via REST API
         run: |
           LOG_FILE=checks/logs/snowflake_setup_rest.log
