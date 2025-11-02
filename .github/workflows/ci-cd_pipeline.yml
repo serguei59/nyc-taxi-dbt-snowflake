@@ -90,24 +90,12 @@ jobs:
             print(resp.json()['data']['TOKEN'])
             EOF
           )
-            import os, requests, json
-
-            url = f"https://{os.environ['SNOWFLAKE_ACCOUNT']}.snowflakecomputing.com/session/v1/login-request?warehouse={os.environ['SNOWFLAKE_WAREHOUSE']}&database={os.environ['SNOWFLAKE_DATABASE']}&schema={os.environ['SNOWFLAKE_SCHEMA']}"
-            payload = {
-                "data": {
-                    "CLIENT_ID": os.environ['SNOWFLAKE_OAUTH_CLIENT_ID'],
-                    "CLIENT_SECRET": os.environ['SNOWFLAKE_OAUTH_CLIENT_SECRET']
-                }
-            }
-            resp = requests.post(url, json=payload)
-            resp.raise_for_status()
-            print(resp.json()['data']['TOKEN'])
-            EOF
+            
           echo "✅ Token obtained."
 
           echo "🔹 Running SQL on Snowflake..."
           curl -X POST "https://${{ secrets.SNOWFLAKE_ACCOUNT }}.snowflakecomputing.com/api/v2/statements" \
             -H "Authorization: Bearer $TOKEN" \
             -H "Content-Type: application/json" \
-            -d '{"statement":"SELECT CURRENT_USER();"}'
+            -d '{"statement":"SELECT CURRENT_USER();"}
 
