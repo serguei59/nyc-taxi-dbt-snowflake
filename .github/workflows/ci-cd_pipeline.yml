@@ -1,0 +1,111 @@
+name: Full ETL + Snowflake OAuth Inline
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+  workflow_dispatch:
+
+jobs:
+
+  # -----------------------------
+  # 0️⃣ Inspect GitHub Token
+  # -----------------------------
+  inspect-github-token:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Inspect GitHub Token
+        run: |
+          python3 - <<EOF
+          import os, base64, json
+
+          token = os.getenv('GITHUB_TOKEN')
+          if not token:
+              print("❌ GITHUB_TOKEN not set")
+              exit(1)
+
+          parts = token.split('.')
+          if len(parts) == 3:
+              payload_b64 = parts[1] + '==='
+              try:
+                  payload_bytes = base64.urlsafe_b64decode(payload_b64)
+                  payload = json.loads(payload_bytes)
+                  print("✅ Token payload (decoded):")
+                  print(json.dumps(payload, indent=2))
+              except Exception as e:
+                  print("❌ Failed to decode JWT payload:", e)
+          else:
+              print("ℹ Token format: opaque (non décodable)")
+EOF
+
+  # -----------------------------
+  # 1️⃣ Generate Snowflake OAuth token & run SQL
+  # -----------------------------
+  run-snowflake-sql:
+    runs-on: ubuntu-latest
+    needs: inspect-github-token
+    env:
+      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
+      SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
+      SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+      SNOWFLAKE_OAUTH_CLIENT_ID: ${{ secrets.SNOWFLAKE_OAUTH_CLIENT_ID }}
+      SNOWFLAKE_OAUTH_CLIENT_SECRET: ${{ secrets.SNOWFLAKE_OAUTH_CLIENT_SECRET }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install requests
+
+      - name: Generate OAuth Token & Run SQL
+        id: run_sql
+        run: |
+          echo "🔹 Requesting Snowflake OAuth token..."
+          TOKEN=$(python3 - <<EOF
+            import os, requests, json
+
+            url = f"https://{os.environ['SNOWFLAKE_ACCOUNT']}.snowflakecomputing.com/session/v1/login-request?warehouse={os.environ['SNOWFLAKE_WAREHOUSE']}&database={os.environ['SNOWFLAKE_DATABASE']}&schema={os.environ['SNOWFLAKE_SCHEMA']}"
+            payload = {
+                "data": {
+                    "CLIENT_ID": os.environ['SNOWFLAKE_OAUTH_CLIENT_ID'],
+                    "CLIENT_SECRET": os.environ['SNOWFLAKE_OAUTH_CLIENT_SECRET']
+                }
+            }
+            resp = requests.post(url, json=payload)
+            resp.raise_for_status()
+            print(resp.json()['data']['TOKEN'])
+            EOF
+          )
+            import os, requests, json
+
+            url = f"https://{os.environ['SNOWFLAKE_ACCOUNT']}.snowflakecomputing.com/session/v1/login-request?warehouse={os.environ['SNOWFLAKE_WAREHOUSE']}&database={os.environ['SNOWFLAKE_DATABASE']}&schema={os.environ['SNOWFLAKE_SCHEMA']}"
+            payload = {
+                "data": {
+                    "CLIENT_ID": os.environ['SNOWFLAKE_OAUTH_CLIENT_ID'],
+                    "CLIENT_SECRET": os.environ['SNOWFLAKE_OAUTH_CLIENT_SECRET']
+                }
+            }
+            resp = requests.post(url, json=payload)
+            resp.raise_for_status()
+            print(resp.json()['data']['TOKEN'])
+            EOF
+          echo "✅ Token obtained."
+
+          echo "🔹 Running SQL on Snowflake..."
+          curl -X POST "https://${{ secrets.SNOWFLAKE_ACCOUNT }}.snowflakecomputing.com/api/v2/statements" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"statement":"SELECT CURRENT_USER();"}'
+
