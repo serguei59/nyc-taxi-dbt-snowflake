@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: RAW
+    schema: RAW
+    description: "Raw Snowflake tables imported from Parquet files"
+    tables:
+      - name: YELLOW_TAXI_TRIPS
+        description: "NYC Yellow Taxi 2024–2025 data ingested via Python pipeline"

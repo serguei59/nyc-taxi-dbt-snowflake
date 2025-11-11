@@ -1,0 +1,132 @@
+version: 2
+
+models:
+  - name: stg__clean_trips
+    description: "Cleansed and enriched NYC Taxi trips dataset"
+    tests:
+      - dbt_expectations.expect_table_row_count_to_be_between:
+                min_value: 1
+                max_value: 80000000
+                config:
+                  severity: warn
+                  description: >
+                    Trips number over 80M require special approval.
+                    Values outside this range should be investigated but might be legitimate.
+      - dbt_expectations.expect_column_pair_values_A_to_be_greater_than_B:
+              column_A: tpep_dropoff_datetime
+              column_B: tpep_pickup_datetime
+              or_equal: False
+
+    columns:
+      - name: TRIP_DISTANCE
+        description: "Distance covered by the trip in miles"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                column_name: TRIP_DISTANCE
+                min_value: 0
+                max_value: 100
+          - dbt_expectations.expect_column_quantile_values_to_be_between:
+              quantile: 0.99
+              min_value: 0
+              max_value: 100
+
+      - name: PASSENGER_COUNT
+        description: "Number of passengers per trip"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                column_name: PASSENGER_COUNT
+                min_value: 1
+                max_value: 6
+
+      - name: TOTAL_AMOUNT
+        description: "Total fare amount paid by the customer"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                column_name: TOTAL_AMOUNT
+                min_value: 0
+
+      - name: PULOCATIONID
+        description: "Pickup location zone ID"
+        tests:
+          - not_null
+
+      - name: DOLOCATIONID
+        description: "Drop-off location zone ID"
+        tests:
+          - not_null
+
+      - name: PAYMENT_TYPE
+        description: "Type of payment used for the trip"
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [1, 2, 3, 4, 5]        
+
+      - name: RATECODEID
+        description: "Rate code identifier used by the driver"
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [1, 2, 3, 4, 5, 6, 99]
+
+      - name: tpep_pickup_datetime
+        description: "Datetime when the trip started"
+        tests:
+          - not_null
+
+      - name: tpep_dropoff_datetime
+        description: "Datetime when the trip ended"
+        tests:
+          - not_null
+          
+
+  - name: fct__daily_summary
+    description: "Daily KPIs and revenue aggregation"
+    columns:
+      - name: TRIP_DATE
+        description: "Date of the trip"
+        tests:
+          - not_null
+      - name: TOTAL_REVENUE
+        description: "Sum of daily trip revenues"
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                column_name: TOTAL_REVENUE
+                min_value: 0
+          
+  - name: fct__zone_analysis
+    description: "Analysis by pickup zone"
+    columns:
+      - name: PICKUP_ZONE
+        description: "Zone name for pickup area"
+        tests:
+          - not_null
+
+  - name: fct__hourly_patterns
+    description: "Hourly travel and revenue patterns"
+    tests:
+          - dbt_expectations.expect_compound_columns_to_be_unique:
+              column_list: ["TRIP_DATE", "PICKUP_HOUR"]
+    columns:
+      - name: TRIP_DATE
+        tests:
+          - not_null
+
+      - name: PICKUP_HOUR
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]
+
+      - name: AVG_DISTANCE
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                column_name: AVG_DISTANCE
+                min_value: 0
+                max_value: 100

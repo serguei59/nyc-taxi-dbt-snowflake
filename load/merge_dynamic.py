@@ -8,15 +8,27 @@ import logging
 from snowflake_utils import execute_sql
 import csv
 from datetime import datetime
-from pathlib import Path
+from checks.writer_report_xlsx import save_ingestion_report_xlsx
 
-# 1. Chargement des variables d'environnement
+# 1️⃣ Chargement des variables d'environnement
 load_dotenv()
 
-# 2. Setup du logging
-logging.basicConfig(filename="logs/merge_pipeline.log", level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# 2️⃣ Création du dossier logs si nécessaire
+LOG_DIR = Path(__file__).parent / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+LOG_FILE = LOG_DIR / "merge_pipeline.log"
 
-# 3. Connexion à Snowflake
+# 3️⃣ Setup du logging
+try:
+    logging.basicConfig(
+        filename=LOG_FILE,
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s'
+    )
+except Exception as e:
+    print(f"⚠️ Logging setup failed: {e}")
+
+# 4️⃣ Connexion à Snowflake
 conn = snowflake.connector.connect(
     user=os.getenv("SNOWFLAKE_USER"),
     password=os.getenv("SNOWFLAKE_PASSWORD"),
@@ -27,12 +39,9 @@ conn = snowflake.connector.connect(
 )
 cursor = conn.cursor()
 
-# 4. Utilitaire SQL
-""" def execute_sql(sql):
-    cursor.execute(sql)
-    return cursor.fetchall() """
+# 5️⃣ Fonctions auxiliaires (map_dtype, create_table_if_not_exists, update_table_schema...)
 
-# 5. Mapping type pandas ➝ Snowflake
+# Mapping type pandas -> Snowflake
 def map_dtype(dtype: str, verbose: bool =False) -> str:
     """
     Mappe un type pandas en type Snowflake compatible.
@@ -60,7 +69,7 @@ def map_dtype(dtype: str, verbose: bool =False) -> str:
 
     return sf_type
 
-# 6. Création de la table si elle n'existe pas
+# Création de la table si elle n'existe pas
 def create_table_if_not_exists(df, table_name, verbose: bool =False):
     cols = []
     for col in df.columns:
@@ -76,7 +85,7 @@ def create_table_if_not_exists(df, table_name, verbose: bool =False):
 
     execute_sql(sql)
 
-# 7. Mise à jour du schéma si colonnes manquantes
+# Mise à jour du schéma si colonnes manquantes
 #def update_table_schema(df: pd.DataFrame, table_name: str, verbose: bool = False):
 #    try:
 #        existing_cols = [row[0].upper() for row in execute_sql(f"DESC TABLE {table_name}")]
@@ -177,25 +186,39 @@ def update_table_schema(df: pd.DataFrame, table_name: str, verbose: bool = False
         print(f"[INFO] No schema changes required for {table_name_sql}")
 
 
-
-# 7. Traitement des fichiers parquet
+# 6️⃣ Traitement des fichiers parquet
 def process_parquet_files():
-    table_final = "YELLOW_TAXI_TRIPS"
-    table_buffer = "BUFFER_YELLOW_TAXI_TRIPS"
+    table_final = "YELLOW_TAXI_TRIPS_V2"
+    table_buffer = "BUFFER_YELLOW_TAXI_TRIPS_V2"
 
-    files = list(Path("extract/data").glob("*.parquet"))
+    # Récupère le chemin du dossier racine du projet (2 niveaux au-dessus de ce fichier)
+    project_root = Path(__file__).resolve().parents[1]
+
+    # Chemin absolu vers le dossier extract/data
+    data_dir = project_root / "extract" / "data"
+
+    print("📂 Fichier actuel :", __file__)
+    print("📂 Racine projet  :", project_root)
+    print("📂 Dossier data   :", data_dir)
+
+    # Vérifie l'existence du dossier
+    if not data_dir.exists():
+        raise FileNotFoundError(f"❌ Le dossier {data_dir} n'existe pas.")
+
+    # Recherche des fichiers .parquet
+    files = list(data_dir.glob("*.parquet"))
     if not files:
-        print("⚠️ Aucun fichier .parquet trouvé dans extract/data/")
+        print("⚠️ Aucun fichier .parquet trouvé dans", data_dir)
         return
+    
+    print(f"✅ {len(files)} fichier(s) trouvé(s) :")
+    for f in files:
+        print("   -", f.name)
+        df = pd.read_parquet(f)
+        # Harmonisation colonnes
+        df.columns = [col.upper() for col in df.columns]          
 
-    for file in Path("extract/data").glob("*.parquet"):
-        print(f"🚀 Fichier : {file.name}")
-        df = pd.read_parquet(file)
-
-        # Hamonisation des colonnes (éviter le bug de casse)
-        df.columns = [col.upper() for col in df.columns]
-
-        # 🧹 Suppression des doublons techniques avant upload
+        # Suppression doublons
         before = len(df)
         df = df.drop_duplicates(
             subset=[
@@ -212,13 +235,14 @@ def process_parquet_files():
         )
         removed = before - len(df)
         print(f"🧹 {removed} duplicate rows removed before upload.")
-        logging.info(f"{removed} duplicates removed from {file.name}")
+        try:
+            logging.info(f"{removed} duplicates removed from {f.name}")
+        except Exception:
+            pass
 
-
-        # Création ou mise à jour des schémas
+        # Création/mise à jour des tables
         create_table_if_not_exists(df, table_final)
         update_table_schema(df, table_final, verbose=True)
-
         create_table_if_not_exists(df, table_buffer)
         update_table_schema(df, table_buffer, verbose=True)
 
@@ -228,8 +252,10 @@ def process_parquet_files():
             print("❌ Échec insertion")
             continue
         print(f"✅ {nrows} lignes dans {table_buffer}")
-        logging.info(f"{nrows} lignes insérées depuis {file.name}")
-
+        try:
+            logging.info(f"{nrows} lignes insérées depuis {f.name}")
+        except Exception:
+            pass
 
         # MERGE dynamique
         cols_upper = [col.upper() for col in df.columns]
@@ -248,20 +274,20 @@ def process_parquet_files():
         WHEN NOT MATCHED THEN INSERT ({', '.join(cols_upper)})
         VALUES ({', '.join([f'source.{col}' for col in cols_upper])});
         """
-        
         execute_sql(merge_sql)
         print("🔁 MERGE terminé\n")
-        logging.info(f"MERGE terminé pour {file.name}")
-
-
+        try:
+            logging.info(f"MERGE terminé pour {f.name}")
+        except Exception:
+            pass
 
         # Vidage du buffer
         execute_sql(f"TRUNCATE TABLE {table_buffer}")
         print("🔁 BUFFER vidé\n")
 
-# 8. Save to CSV for traceability
+""" # 7️⃣ Sauvegarde du report
 def save_ingestion_report(stats: dict):
-    report_dir = Path("load/verifications")
+    report_dir = Path(__file__).parent / "verifications"
     report_dir.mkdir(parents=True, exist_ok=True)
     report_file = report_dir / "post_ingestion_report.csv"
 
@@ -292,62 +318,53 @@ def save_ingestion_report(stats: dict):
             writer.writerow(headers)
         writer.writerow(row)
 
-    print(f"📊 Ingestion report saved to: {report_file}")
+    print(f"📊 Ingestion report saved to: {report_file}") """
 
-# 9. Lancement
+# 8️⃣ Lancement principal
 if __name__ == "__main__":
     try:
-        # execution et vérification
         process_parquet_files()
 
         print("\n📊 Vérification post-ingestion Snowflake...")
         sql_checks = {
-            "TOTAL_ROWS": "SELECT COUNT(*) AS TOTAL_ROWS FROM RAW.YELLOW_TAXI_TRIPS;",
+            "TOTAL_ROWS": "SELECT COUNT(*) AS TOTAL_ROWS FROM RAW.YELLOW_TAXI_TRIPS_V2;",
             "DUPLICATE_GROUPS": """
                 SELECT COUNT(*) AS DUPLICATE_GROUPS 
                 FROM (
                     SELECT TPEP_PICKUP_DATETIME, TPEP_DROPOFF_DATETIME, VENDORID, PULOCATIONID, DOLOCATIONID,
                            COUNT(*) AS c
-                    FROM RAW.YELLOW_TAXI_TRIPS
+                    FROM RAW.YELLOW_TAXI_TRIPS_V2
                     GROUP BY 1,2,3,4,5
                     HAVING COUNT(*) > 1
                 );
             """,
-            "BUFFER_ROWS": "SELECT COUNT(*) AS BUFFER_ROWS FROM RAW.BUFFER_YELLOW_TAXI_TRIPS;",
+            "BUFFER_ROWS": "SELECT COUNT(*) AS BUFFER_ROWS FROM RAW.BUFFER_YELLOW_TAXI_TRIPS_V2;",
             "DISTANCE_STATS": """
                 SELECT 
                     MIN(TRIP_DISTANCE) AS MIN_DISTANCE,
                     MAX(TRIP_DISTANCE) AS MAX_DISTANCE,
                     AVG(TRIP_DISTANCE) AS AVG_DISTANCE
-                FROM RAW.YELLOW_TAXI_TRIPS;
+                FROM RAW.YELLOW_TAXI_TRIPS_V2;
             """
         }
 
-        # 1️⃣ Run checks and display results
         results = {}
         for check_name, sql in sql_checks.items():
             result = execute_sql(sql)
-        # Handle multiple columns (DISTANCE_STATS returns 3 values)
-        if check_name == "DISTANCE_STATS":
-            results["MIN_DISTANCE"] = result[0][0] if result else None
-            results["MAX_DISTANCE"] = result[0][1] if result else None
-            results["AVG_DISTANCE"] = result[0][2] if result else None
-        else:
-            results[check_name] = result[0][0] if result else None
+            if check_name == "DISTANCE_STATS":
+                results["MIN_DISTANCE"] = result[0][0] if result else None
+                results["MAX_DISTANCE"] = result[0][1] if result else None
+                results["AVG_DISTANCE"] = result[0][2] if result else None
+            else:
+                results[check_name] = result[0][0] if result else None
             print(f"{check_name}: {result[0][0] if result else 'N/A'}")
-            for check_name, sql in sql_checks.items():
-                result = execute_sql(sql)
-                print(f"{check_name}: {result[0][0] if result else 'N/A'}")
 
-        # 2️⃣ Call the save function
-        save_ingestion_report(results)
+        save_ingestion_report_xlsx(results)
 
     except Exception as e:
-        print(f"❌Erreur pendant le processus d ingestion: {e}")
+        print(f"❌ Erreur pendant le processus d'ingestion: {e}")
 
     finally:
-        # fermeture
         cursor.close()
         conn.close()
         print("✅ Pipeline terminé proprement (Snowflake fermé, logs à jour).")
-

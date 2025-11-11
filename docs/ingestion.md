@@ -1,6 +1,11 @@
 # 🧩 Data Ingestion Pipeline – NYC Taxi Data (Snowflake + Python)
 
-This module manages the **automated and incremental ingestion** of `.parquet` files into **Snowflake**, using data from the **NYC Taxi & Limousine Commission** public dataset.
+
+**Navigation:**  
+[Home](./index.md) • [Setup](./setup.md) • [Transformations](./transformations.md)• [dbt_test](./data_quality.md)
+
+
+This module handles the **automated and incremental ingestion** of `.parquet` files into **Snowflake**, using public NYC Taxi & Limousine Commission data.
 
 ---
 
@@ -8,208 +13,183 @@ This module manages the **automated and incremental ingestion** of `.parquet` fi
 
 ```
 📁 docs/
- ┣ 📘 setup.md
- ┗ 📘 ingestion.md             → this documentation
- 📁 extract/
+ ┣ 📘 index.md                → Home / Overview
+ ┣ 📘 setup.md                → Snowflake & Workstation Setup
+ ┗ 📘 ingestion.md            → this file
+📁 extract/
  ┣ 📁 data
  ┣ 📁 sql
- ┣ 📜 download_parquet.py      → data extraction from public source 
- 📁 load/
- ┣ 📜 merge_dynamic.py         → main ingestion script
- ┣ 📜 snowflake_utils.py       → SQL and connection helpers
+ ┣ 📜 download_parquet.py     → data extraction
+📁 load/
+ ┣ 📜 merge_dynamic.py        → ingestion & merge
+ ┣ 📜 snowflake_utils.py      → SQL helpers
+ ┗ 📜 verifications/
+   ┗ 📜 writer_report_xlsx.py → ingestion report
 ```
 
-Data is stored in two Snowflake tables under the **RAW schema**:
+Data is stored in **RAW schema tables**:
 
-- `RAW.YELLOW_TAXI_TRIPS` → main consolidated table  
-- `RAW.BUFFER_YELLOW_TAXI_TRIPS` → temporary buffer table used for merges
+* `RAW.YELLOW_TAXI_TRIPS_V2` → main table
+* `RAW.BUFFER_YELLOW_TAXI_TRIPS_V2` → temporary buffer table
 
 ---
-## ⚙️ Why DDL First? (Pro Practice)
 
-> Ingestion must follow a strict **DDL → DML** separation.
+## ⚙️ 2. DDL Before DML (Pro Practice)
 
-| Type | Purpose |
-|------|---------|
-| **DDL (Data Definition Language)** | Define structure (e.g., tables, schemas) |
-| **DML (Data Manipulation Language)** | Manipulate content (e.g., INSERT, UPDATE) |
+> Strict **DDL → DML** separation is enforced.
 
-### ✅ Advantages of DDL-first approach:
+| Type    | Purpose                       |
+| ------- | ----------------------------- |
+| **DDL** | Define table/schema structure |
+| **DML** | Insert / update data          |
 
-- Ensures **clean structure before data**.
-- Makes the project **reproducible** and compatible with **CI/CD pipelines**.
-- Enables version control and **auditability** of schema changes.
-- Prevents accidental writes into undefined targets.
+✅ Advantages:
 
-## 🚀 2. Step 1: Extract `.parquet` Files
+* Clean and reproducible structure
+* CI/CD friendly
+* Auditable schema changes
+* Prevents accidental writes
 
-The monthly taxi trip data is hosted publicly at:
+---
 
-📦 **Base URL:**  
+## 🚀 3. Step 1: Download `.parquet` Files
+
+Base URL:
 `https://d37ci6vzurychx.cloudfront.net/trip-data/`
 
-**Example files:**
-- `yellow_tripdata_2024-01.parquet`
-- `yellow_tripdata_2024-02.parquet`
-- `yellow_tripdata_2024-03.parquet`
+Example:
 
-### 🧠 Script: `download_parquet.py`
-Automatically downloads `.parquet` files for a given date range and stores them in `data/`.
+* `yellow_tripdata_2024-01.parquet`
+* `yellow_tripdata_2024-02.parquet`
+
+Run script:
 
 ```bash
 python extract/download_parquet.py --start 2024-01 --end 2025-10
 ```
 
 **Features:**
-- Parallel downloads (threaded)
-- MD5 / file size verification
-- Automatic duplicate handling
-- Logs stored under `logs/download.log`
+
+* Parallel downloads
+* MD5 / file size verification
+* Duplicate handling
+* Logs in `logs/download.log`
 
 ---
 
-## ⚙️ 3. Step 2: Ingest into Snowflake
+## ⚙️ 4. Step 2: Ingest into Snowflake
 
-### 🎯 Objective
-Load the `.parquet` files into Snowflake with **dynamic schema detection** and a **duplicate-safe MERGE** process.
+### 🧩 Script: `merge_dynamic.py`
 
-### 🧩 Main script: `merge_dynamic.py`
+Workflow:
 
-**Script workflow:**
-1. Reads `.parquet` files from the `data/` directory  
-2. Creates Snowflake tables dynamically if they don’t exist  
-3. Automatically adjusts schema (adds missing columns)  
-4. Loads each file into the temporary buffer table  
-5. Merges buffer into the main table using a multi-key business join:
+1. Reads `.parquet` from `data/`
+2. Creates tables dynamically if missing
+3. Adjusts schema (adds missing columns)
+4. Loads data to buffer table
+5. Merges buffer → main table with multi-key join:
 
-   ```sql
-   ON target.TPEP_PICKUP_DATETIME = source.TPEP_PICKUP_DATETIME
-      AND target.TPEP_DROPOFF_DATETIME = source.TPEP_DROPOFF_DATETIME
-      AND target.VENDORID = source.VENDORID
-      AND target.PULOCATIONID = source.PULOCATIONID
-      AND target.DOLOCATIONID = source.DOLOCATIONID
-      AND target.PASSENGER_COUNT = source.PASSENGER_COUNT
-      AND target.TRIP_DISTANCE = source.TRIP_DISTANCE
-   ```
-
-6. Updates existing records / inserts new ones  
-7. **Cleans up the buffer table** after each merge
-
----
-
-## 📊 4. Step 3: Post-Ingestion Data Quality Checks
-
-After ingestion, a series of **data validation queries** are executed automatically to ensure data integrity:
-
-| Check | Purpose | SQL Query |
-|--------|----------|-----------|
-| **TOTAL_ROWS** | Total number of rows in `RAW.YELLOW_TAXI_TRIPS` | `SELECT COUNT(*)` |
-| **DUPLICATE_GROUPS** | Number of duplicate groups (same business key) | `HAVING COUNT(*) > 1` |
-| **BUFFER_ROWS** | Ensures buffer table is empty after merge | `SELECT COUNT(*) FROM BUFFER` |
-| **DISTANCE_STATS** | Monitors min/max/avg trip distance | `MIN, MAX, AVG(TRIP_DISTANCE)` |
-
-**Example output:**
-```
-TOTAL_ROWS: 72726158
-DUPLICATE_GROUPS: 1052627
-BUFFER_ROWS: 0
-DISTANCE_STATS: min=0, max=398608.6, avg=5.8
+```sql
+ON target.TPEP_PICKUP_DATETIME = source.TPEP_PICKUP_DATETIME
+   AND target.TPEP_DROPOFF_DATETIME = source.TPEP_DROPOFF_DATETIME
+   AND target.VENDORID = source.VENDORID
+   AND target.PULOCATIONID = source.PULOCATIONID
+   AND target.DOLOCATIONID = source.DOLOCATIONID
+   AND target.PASSENGER_COUNT = source.PASSENGER_COUNT
+   AND target.TRIP_DISTANCE = source.TRIP_DISTANCE
 ```
 
+6. Updates existing rows / inserts new ones
+7. Cleans buffer table after merge
+
 ---
 
-## 🧹 5. Cleanup and Resource Management
+## 📊 5. Step 3: Post-Ingestion Data Quality Checks
 
-The `finally` block ensures that Snowflake resources are **always closed properly**, even if an exception occurs.
+SQL checks executed automatically:
+
+| Check                | Purpose                                  |
+| -------------------- | ---------------------------------------- |
+| **TOTAL_ROWS**       | Total rows in `RAW.YELLOW_TAXI_TRIPS_V2` |
+| **DUPLICATE_GROUPS** | Duplicate business keys                  |
+| **BUFFER_ROWS**      | Buffer table should be empty             |
+| **DISTANCE_STATS**   | Min / Max / Avg trip distance            |
+
+Results are **saved in Excel**:
+
+```python
+from verifications.writer_report_xlsx import write_merge_report
+write_merge_report(file_name, rows_merged, status)
+```
+
+Each ingestion creates a **new row in `merge_report.xlsx`** for traceability.
+
+---
+
+## 🧹 6. Cleanup
 
 ```python
 finally:
-    if cursor: cursor.close()
-    if conn: conn.close()
-    print("✅ Pipeline completed and connections closed.")
+    cursor.close()
+    conn.close()
+    print("✅ Pipeline finished cleanly.")
 ```
 
 ---
 
-## 🧠 6. Best Practices Applied
+## 🧠 7. Best Practices
 
-| Aspect | Practice |
-|---------|-----------|
-| **Security** | Credentials stored in `.env` (never committed) |
-| **Robustness** | Full exception handling (`try/except/finally`) |
-| **Scalability** | Schema auto-adjustment on Snowflake |
-| **Traceability** | SQL logs and validation checks after ingestion |
-| **Performance** | Batch loading via `write_pandas` |
-| **Quality** | Data integrity verified post-load |
+* Credentials in `.env` (never committed)
+* Full exception handling
+* Auto schema adjustment
+* SQL logs and verification
+* Batch loading via `write_pandas`
+* Post-load data integrity check
 
 ---
 
-## 🔍 7. Production Considerations
+## 🔍 8. Production Considerations
 
-- Verify warehouse configuration (`NYC_TAXI_WH`)  
-- Ensure the correct role (`ACCOUNTADMIN` / `SYSADMIN`) has access to `RAW` schema  
-- Adjust warehouse size based on volume (`XSMALL` → `MEDIUM`)  
-- Schedule automatic runs via **Airflow**, **Cron**, or **GitHub Actions**
-
----
-
-## 🚀 8. Next Step: Data Transformation with DBT
-
-After ingestion, transformations are managed using **DBT Core**.
-
-**Model structure:**
-- **staging/** → data cleaning (`stg_yellow_taxi_trips.sql`)
-- **intermediate/** → business metrics and enrichments
-- **marts/** → analytical aggregates (`daily_summary`, `zone_analysis`, `hourly_patterns`)
+* Verify warehouse & role access
+* Adjust warehouse size (`XSMALL` → `MEDIUM`)
+* Schedule automated runs via **GitHub Actions** or **Cron**
 
 ---
 
-## 🧾 9. Full Pipeline Execution
+## 🚀 9. Next Step: DBT Transformations
 
-### 🪄 Manual Run
+After ingestion, **DBT Core** handles transformations:
+
+* `staging/` → cleaning (`stg_yellow_taxi_trips.sql`)
+* `intermediate/` → business metrics
+* `marts/` → analytical aggregates (`daily_summary`, `zone_analysis`)
+
+---
+
+## 🏁 10. Execution Examples
+
+### Manual Run
 
 ```bash
-# Step 1: download source data
 python extract/download_parquet.py --start 2024-01 --end 2025-10
-
-# Step 2: ingest to Snowflake
 python load/merge_dynamic.py
 ```
 
-### 🧰 Automated Run (Cron or GitHub Actions)
+### Automated Run (GitHub Actions / Cron)
 
 ```bash
 0 3 * * * cd /app/nyc-taxi-dbt-snowflake && python load/merge_dynamic.py >> logs/ingestion.log 2>&1
 ```
 
 ---
+### Navigation
+- [Home](./index.md)
+- [3. Data Transformations (dbt)](./transformation.md)
 
-## 📚 10. Optional: Post-Ingestion CSV Report
-
-An optional CSV report can be generated for ingestion quality history:
-
-📄 `load/verifications/post_ingestion_report.csv`
-
-| Date | Total Rows | Duplicates | Buffer | Min Dist | Max Dist | Avg Dist |
-|------|-------------|-------------|---------|-----------|-----------|-----------|
-
----
-
-## 🏁 Summary
-
-| Step | Purpose | Status |
-|------|----------|--------|
-| Parquet Extraction | Automatic download from public dataset | ✅ |
-| Snowflake Ingestion | Dynamic schema loading + safe merge | ✅ |
-| Data Quality Checks | Volume and integrity validation | ✅ |
-| Resource Cleanup | Always closes connections | ✅ |
-| DBT Transformations | Cleaning, enrichment, aggregation | 🔜 (next phase) |
-
----
 
 ## 📌 Author & Maintenance
 
-Maintained by **SBUASA**  
-Project: *Data Engineering – Snowflake + DBT Core Pipeline*  
-Current version: **v1.3.1**  
+Maintained by **SBUASA**
+Project: *Data Engineering – Snowflake + DBT Pipeline*
+Current version: **v1.3.2**
 Last updated: *October 2025*
