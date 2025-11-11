@@ -217,7 +217,7 @@ target/
 dbt_packages/
 
 # Dossiers data
-nyc_taxi_dbt_snowflake/ingestion/data/
+nyc_taxi_dbt_snowflake/extract/data/
 **/data/
 **/data2/
 *.parquet
