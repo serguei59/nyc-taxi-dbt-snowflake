@@ -1,0 +1,46 @@
+name: CI-CD Pipeline
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+  workflow_dispatch:
+
+jobs:
+  # 🧱 Étape 1 : Création infrastructure Snowflake  
+  terraform:
+    name: Setup Snowflake Infrastructure
+    runs-on: ubuntu-latest
+
+    env:
+      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_ORGANIZATION: ${{ secrets.SNOWFLAKE_ORGANIZATION }}
+      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+      SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+      SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}      
+      SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 2.10.1  # tu peux ajuster à ta version
+
+      - name: Terraform Init
+        working-directory: ./terraform  
+        run: terraform init
+        
+
+      - name: Terraform Plan
+        working-directory: ./terraform
+        run: terraform plan
+        
+
+      # pour appliquer automatiquement (optionnel):
+      # - name: Terraform Apply
+      #   run: terraform apply -auto-approve
+      #   working-directory: terraform

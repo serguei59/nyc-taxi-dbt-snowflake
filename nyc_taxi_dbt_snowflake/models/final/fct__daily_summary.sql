@@ -1,12 +1,17 @@
 {{ config(materialized='table', schema='FINAL') }}
 
-SELECT
-    TRIP_DATE,
-    COUNT(*) AS TOTAL_TRIPS,
-    ROUND(AVG(TRIP_DISTANCE), 2) AS AVG_DISTANCE,
-    ROUND(SUM(TOTAL_AMOUNT), 2) AS TOTAL_REVENUE,
-    ROUND(AVG(TIP_PCT), 2) AS AVG_TIP_PCT,
-    ROUND(AVG(TRIP_DURATION_MIN), 2) AS AVG_DURATION_MIN
-FROM {{ ref('stg__clean_trips') }}
-GROUP BY TRIP_DATE
-ORDER BY TRIP_DATE
+WITH agg AS (
+    SELECT
+        trip_date,
+        COUNT(*) AS total_trips,
+        ROUND(AVG(trip_distance), 2) AS avg_distance,
+        ROUND(SUM(total_amount), 2) AS total_revenue,
+        ROUND(AVG(tip_pct), 2) AS avg_tip_pct,
+        ROUND(AVG(trip_duration_min), 2) AS avg_duration_min
+    FROM {{ ref('stg__clean_trips') }}
+    GROUP BY trip_date
+)
+
+SELECT *
+FROM agg
+ORDER BY trip_date;
