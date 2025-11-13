@@ -1,32 +1,48 @@
-variable "snowflake_account" {
+variable "account" {
   description = "Snowflake account identifier"
   type        = string
 }
 
-variable "snowflake_user" {
+variable "organization" {
+  description = "Snowflake account identifier"
+  type        = string
+}
+
+variable "username" {
   description = "Snowflake admin username"
   type        = string
 }
 
-variable "snowflake_password" {
+variable "password" {
   description = "Snowflake admin password"
   type        = string
   sensitive   = true
 }
 
-variable "snowflake_role" {
-  description = "Setup role (ACCOUNTADMIN)"
+variable "role" {
+  description = "Setup role"
   type        = string
-  default     = "ACCOUNTADMIN"
 }
 
-variable "dbt_password" {
+# --- Database & warehouse ---
+variable "database" {
+  description = "Nom de la base de données principale"
+  type        = string
+}
+
+variable "warehouse" {
+  description = "Nom du warehouse utilisé pour les transformations"
+  type        = string
+}
+
+# --- Schémas ---
+variable "schema" {
+  description = "Liste des schémas à créer dans la base"
+  type        = list(string)
+}
+
+variable "dbt_user_password" {
   description = "Password for DBT user"
   type        = string
   sensitive   = true
-  default     = "Password123!"
 }
-
-variable "snowflake_warehouse" {}
-variable "snowflake_database" {}
-variable "snowflake_schema" {}

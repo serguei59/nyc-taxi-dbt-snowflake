@@ -1,76 +1,179 @@
-resource "snowflake_warehouse_grant" "warehouse_usage" {
-  warehouse_name = snowflake_warehouse.nyc_taxi_wh.name
-  privilege      = "USAGE"
-  roles          = [snowflake_role.transform.name]
-}
+# ==========================================================
+# GRANTS – Warehouse, Database, Schemas & Tables
+# ==========================================================
 
-resource "snowflake_warehouse_grant" "warehouse_operate" {
-  warehouse_name = snowflake_warehouse.nyc_taxi_wh.name
-  privilege      = "OPERATE"
-  roles          = [snowflake_role.transform.name]
-}
+# ✅ 1️⃣  Warehouse grants (USAGE, OPERATE)
+resource "snowflake_grant_privileges_to_account_role" "warehouse_usage_operate" {
+  account_role_name = snowflake_account_role.transform.name
+  privileges        = ["USAGE", "OPERATE"]
 
-resource "snowflake_database_grant" "db_usage" {
-  database_name = snowflake_database.nyc_taxi_db.name
-  privilege     = "USAGE"
-  roles         = [snowflake_role.transform.name]
-}
-
-resource "snowflake_schema_grant" "schema_usage" {
-  for_each = {
-    raw     = snowflake_schema.raw.name
-    staging = snowflake_schema.staging.name
-    final   = snowflake_schema.final.name
+  on_account_object {
+    object_type = "WAREHOUSE"
+    object_name = snowflake_warehouse.transform_wh.name
   }
-  database_name = snowflake_database.nyc_taxi_db.name
-  schema_name   = each.value
-  privilege     = "USAGE"
-  roles         = [snowflake_role.transform.name]
+
+  depends_on = [
+    snowflake_warehouse.transform_wh,
+    snowflake_account_role.transform
+  ]
 }
 
-# Grants for existing tables
-resource "snowflake_table_grant" "raw_all" {
-  database_name = var.database_name
-  schema_name   = "RAW"
-  privilege     = "ALL PRIVILEGES"
-  roles         = [snowflake_role.transform.name]
-  on_all        = true
+# ✅ 2️⃣  Database usage grant
+resource "snowflake_grant_privileges_to_account_role" "database_usage" {
+  account_role_name = snowflake_account_role.transform.name
+  privileges        = ["USAGE"]
+
+  on_account_object {
+    object_type = "DATABASE"
+    object_name = snowflake_database.nyc_taxi_db.name
+  }
+
+  depends_on = [
+    snowflake_database.nyc_taxi_db,
+    snowflake_account_role.transform
+  ]
 }
 
-resource "snowflake_table_grant" "staging_all" {
-  database_name = var.database_name
-  schema_name   = "STAGING"
-  privilege     = "ALL PRIVILEGES"
-  roles         = [snowflake_role.transform.name]
-  on_all        = true
+# ✅ 3️⃣  Schema grants (USAGE sur RAW, STAGING, FINAL)
+locals {
+  schemas = ["RAW", "STAGING", "FINAL"]
 }
 
-resource "snowflake_table_grant" "final_all" {
-  database_name = var.database_name
-  schema_name   = "FINAL"
-  privilege     = "ALL PRIVILEGES"
-  roles         = [snowflake_role.transform.name]
-  on_all        = true
+resource "snowflake_grant_privileges_to_account_role" "schema_usage" {
+  account_role_name = snowflake_account_role.transform.name
+  privileges        = ["USAGE"]
+
+  on_schema {
+    all_schemas_in_database = snowflake_database.nyc_taxi_db.name
+  }
+
+  depends_on = [
+    snowflake_database.nyc_taxi_db,
+    snowflake_account_role.transform
+  ]
 }
 
-# Grants for future tables
-resource "snowflake_future_table_grant" "raw_future" {
-  database_name = var.database_name
-  schema_name   = "RAW"
-  privilege     = "ALL PRIVILEGES"
-  roles         = [snowflake_role.transform.name]
+
+##############################################
+# GRANT ALL PRIVILEGES ON EXISTING TABLES
+##############################################
+
+# RAW
+resource "snowflake_grant_privileges_to_account_role" "raw_tables_existing" {
+  account_role_name = snowflake_account_role.transform.name
+  privileges        = ["ALL PRIVILEGES"]
+
+  on_schema_object {
+    all {
+      object_type_plural = "TABLES"
+      in_schema          = "${snowflake_database.nyc_taxi_db.name}.RAW"
+    }
+  }
+
+  depends_on = [
+    snowflake_schema.raw,
+    snowflake_account_role.transform
+  ]
 }
 
-resource "snowflake_future_table_grant" "staging_future" {
-  database_name = var.database_name
-  schema_name   = "STAGING"
-  privilege     = "ALL PRIVILEGES"
-  roles         = [snowflake_role.transform.name]
+# STAGING
+resource "snowflake_grant_privileges_to_account_role" "staging_tables_existing" {
+  account_role_name = snowflake_account_role.transform.name
+  privileges        = ["ALL PRIVILEGES"]
+
+  on_schema_object {
+    all {
+      object_type_plural = "TABLES"
+      in_schema          = "${snowflake_database.nyc_taxi_db.name}.STAGING"
+    }
+  }
+
+  depends_on = [
+    snowflake_schema.staging,
+    snowflake_account_role.transform
+  ]
 }
 
-resource "snowflake_future_table_grant" "final_future" {
-  database_name = var.database_name
-  schema_name   = "FINAL"
-  privilege     = "ALL PRIVILEGES"
-  roles         = [snowflake_role.transform.name]
+# FINAL
+resource "snowflake_grant_privileges_to_account_role" "final_tables_existing" {
+  account_role_name = snowflake_account_role.transform.name
+  privileges        = ["ALL PRIVILEGES"]
+
+  on_schema_object {
+    all {
+      object_type_plural = "TABLES"
+      in_schema          = "${snowflake_database.nyc_taxi_db.name}.FINAL"
+    }
+  }
+
+  depends_on = [
+    snowflake_schema.final,
+    snowflake_account_role.transform
+  ]
 }
+
+##############################################
+# GRANT ALL PRIVILEGES ON FUTURE TABLES
+##############################################
+
+# RAW
+resource "snowflake_grant_privileges_to_account_role" "raw_tables_future" {
+  account_role_name = snowflake_account_role.transform.name
+  privileges        = ["ALL PRIVILEGES"]
+
+  on_schema_object {
+    future {
+      object_type_plural = "TABLES"
+      in_schema          = "${snowflake_database.nyc_taxi_db.name}.RAW"
+    }
+  }
+
+  depends_on = [
+    snowflake_schema.raw,
+    snowflake_account_role.transform
+  ]
+}
+
+# STAGING
+resource "snowflake_grant_privileges_to_account_role" "staging_tables_future" {
+  account_role_name = snowflake_account_role.transform.name
+  privileges        = ["ALL PRIVILEGES"]
+
+  on_schema_object {
+    future {
+      object_type_plural = "TABLES"
+      in_schema          = "${snowflake_database.nyc_taxi_db.name}.STAGING"
+    }
+  }
+
+  depends_on = [
+    snowflake_schema.staging,
+    snowflake_account_role.transform
+  ]
+}
+
+# FINAL
+resource "snowflake_grant_privileges_to_account_role" "final_tables_future" {
+  account_role_name = snowflake_account_role.transform.name
+  privileges        = ["ALL PRIVILEGES"]
+
+  on_schema_object {
+    future {
+      object_type_plural = "TABLES"
+      in_schema          = "${snowflake_database.nyc_taxi_db.name}.FINAL"
+    }
+  }
+
+  depends_on = [
+    snowflake_schema.final,
+    snowflake_account_role.transform
+  ]
+}
+
+# ==========================================================
+# ✅ Résumé :
+# - Le rôle TRANSFORM reçoit :
+#   - USAGE + OPERATE sur le warehouse
+#   - USAGE sur la database et les 3 schémas
+#   - ALL PRIVILEGES sur toutes les tables existantes et futures
+# ==========================================================

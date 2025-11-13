@@ -3,9 +3,9 @@ output "snowflake_database" {
 }
 
 output "snowflake_user" {
-  value = snowflake_user.dbt.name
+  value = snowflake_user.dbt_user.name
 }
 
 output "snowflake_role" {
-  value = snowflake_role.transform.name
+  value = snowflake_account_role.transform.name
 }

@@ -1,8 +1,8 @@
 terraform {
   required_providers {
     snowflake = {
-      source  = "Snowflake-Labs/snowflake"
-      version = "~> 0.94.0"
+      source  = "Snowflakedb/snowflake"
+      version = "2.10.1"
     }
   }
 
@@ -10,8 +10,10 @@ terraform {
 }
 
 provider "snowflake" {
-  account  = var.snowflake_account
-  username = var.snowflake_user
-  password = var.snowflake_password
-  role     = var.snowflake_role
+  account_name = var.account
+  organization_name = var.organization
+  user = var.username
+  password = var.password
+  role     = var.role
+  preview_features_enabled = ["snowflake_table_resource"]
 }
