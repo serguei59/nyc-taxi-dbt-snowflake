@@ -45,7 +45,7 @@ jobs:
             -var "user=${TF_VAR_user}" \
             -var "password=${TF_VAR_password}" \
             -var "role=${TF_VAR_role}" \
-            -var "warehouse=${TF_VAR_warehouse}"
+            -var "warehouse=${TF_VAR_warehouse}" \
             -var "dbt_user_password=${TF_VAR_dbt_user_password}"
 
       - name: Terraform Apply
@@ -58,6 +58,6 @@ jobs:
             -var "user=${TF_VAR_user}" \
             -var "password=${TF_VAR_password}" \
             -var "role=${TF_VAR_role}" \
-            -var "warehouse=${TF_VAR_warehouse}"
+            -var "warehouse=${TF_VAR_warehouse}" \
             -var "dbt_user_password=${TF_VAR_dbt_user_password}"
 
