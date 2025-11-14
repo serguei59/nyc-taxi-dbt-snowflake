@@ -8,7 +8,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  # 🧱 Étape 1 : Création infrastructure Snowflake  
   terraform:
     name: Setup Snowflake Infrastructure
     runs-on: ubuntu-latest
@@ -18,7 +17,7 @@ jobs:
       SNOWFLAKE_ORGANIZATION: ${{ secrets.SNOWFLAKE_ORGANIZATION }}
       SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
       SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
-      SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}      
+      SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
       SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
 
     steps:
@@ -28,19 +27,31 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.10.2  # tu peux ajuster à ta version
+          terraform_version: 1.10.2
 
       - name: Terraform Init
-        working-directory: ./terraform  
-        run: terraform init
-        
+        working-directory: ./terraform
+        run: terraform init -input=false
 
       - name: Terraform Plan
         working-directory: ./terraform
-        run: terraform plan
-        
+        run: |
+          terraform plan -input=false \
+            -var "account=${SNOWFLAKE_ACCOUNT}" \
+            -var "organization=${SNOWFLAKE_ORGANIZATION}" \
+            -var "user=${SNOWFLAKE_USER}" \
+            -var "password=${SNOWFLAKE_PASSWORD}" \
+            -var "role=${SNOWFLAKE_ROLE}" \
+            -var "warehouse=${SNOWFLAKE_WAREHOUSE}"
 
-      # pour appliquer automatiquement (optionnel):
-      # - name: Terraform Apply
-      #   run: terraform apply -auto-approve
-      #   working-directory: terraform
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main'
+        working-directory: ./terraform
+        run: |
+          terraform apply -auto-approve -input=false \
+            -var "account=${SNOWFLAKE_ACCOUNT}" \
+            -var "organization=${SNOWFLAKE_ORGANIZATION}" \
+            -var "user=${SNOWFLAKE_USER}" \
+            -var "password=${SNOWFLAKE_PASSWORD}" \
+            -var "role=${SNOWFLAKE_ROLE}" \
+            -var "warehouse=${SNOWFLAKE_WAREHOUSE}"

@@ -84,7 +84,7 @@ resource "snowflake_user" "dbt_user" {
 ### 4.5 Grants
 Les privilèges sont accordés via `grants.tf` :
 - USAGE/OPERATE sur le warehouse
-- USAGE sur la base et les schémas
+- USAGE sur la base et les schémas.
 - ALL PRIVILEGES sur les tables existantes et futures
 
 ---
