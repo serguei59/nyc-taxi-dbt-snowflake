@@ -8,7 +8,7 @@ variable "organization" {
   type        = string
 }
 
-variable "username" {
+variable "user" {
   description = "Snowflake admin username"
   type        = string
 }

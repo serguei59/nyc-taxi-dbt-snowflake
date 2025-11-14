@@ -12,7 +12,7 @@ terraform {
 provider "snowflake" {
   account_name = var.account
   organization_name = var.organization
-  user = var.username
+  user = var.user
   password = var.password
   role     = var.role
   preview_features_enabled = ["snowflake_table_resource"]
