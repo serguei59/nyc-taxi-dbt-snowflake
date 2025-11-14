@@ -24,21 +24,9 @@ variable "role" {
   type        = string
 }
 
-# --- Database & warehouse ---
-variable "database" {
-  description = "Nom de la base de données principale"
-  type        = string
-}
-
 variable "warehouse" {
   description = "Nom du warehouse utilisé pour les transformations"
   type        = string
-}
-
-# --- Schémas ---
-variable "schema" {
-  description = "Liste des schémas à créer dans la base"
-  type        = list(string)
 }
 
 variable "dbt_user_password" {

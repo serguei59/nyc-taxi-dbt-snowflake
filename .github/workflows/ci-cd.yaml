@@ -13,12 +13,15 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-      SNOWFLAKE_ORGANIZATION: ${{ secrets.SNOWFLAKE_ORGANIZATION }}
-      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-      SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
-      SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
-      SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+      TF_VAR_account: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      TF_VAR_organization: ${{ secrets.SNOWFLAKE_ORGANIZATION }}
+      TF_VAR_user: ${{ secrets.SNOWFLAKE_USER }}
+      TF_VAR_password: ${{ secrets.SNOWFLAKE_PASSWORD }}
+      TF_VAR_role: ${{ secrets.SNOWFLAKE_ROLE }}
+      TF_VAR_warehouse: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+      TF_VAR_dbt_user_password: ${{ secrets.DBT_PASSWORD }}
+
+      
 
     steps:
       - name: Checkout repository
@@ -37,21 +40,24 @@ jobs:
         working-directory: ./terraform
         run: |
           terraform plan -input=false \
-            -var "account=${SNOWFLAKE_ACCOUNT}" \
-            -var "organization=${SNOWFLAKE_ORGANIZATION}" \
-            -var "user=${SNOWFLAKE_USER}" \
-            -var "password=${SNOWFLAKE_PASSWORD}" \
-            -var "role=${SNOWFLAKE_ROLE}" \
-            -var "warehouse=${SNOWFLAKE_WAREHOUSE}"
+            -var "account=${TF_VAR_account}" \
+            -var "organization=${TF_VAR_organization}" \
+            -var "user=${TF_VAR_user}" \
+            -var "password=${TF_VAR_password}" \
+            -var "role=${TF_VAR_role}" \
+            -var "warehouse=${TF_VAR_warehouse}"
+            -var "dbt_user_password=${TF_VAR_dbt_user_password}"
 
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main'
         working-directory: ./terraform
         run: |
           terraform apply -auto-approve -input=false \
-            -var "account=${SNOWFLAKE_ACCOUNT}" \
-            -var "organization=${SNOWFLAKE_ORGANIZATION}" \
-            -var "user=${SNOWFLAKE_USER}" \
-            -var "password=${SNOWFLAKE_PASSWORD}" \
-            -var "role=${SNOWFLAKE_ROLE}" \
-            -var "warehouse=${SNOWFLAKE_WAREHOUSE}"
+            -var "account=${TF_VAR_account}" \
+            -var "organization=${TF_VAR_organization}" \
+            -var "user=${TF_VAR_user}" \
+            -var "password=${TF_VAR_password}" \
+            -var "role=${TF_VAR_role}" \
+            -var "warehouse=${TF_VAR_warehouse}"
+            -var "dbt_user_password=${TF_VAR_dbt_user_password}"
+
