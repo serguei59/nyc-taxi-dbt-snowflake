@@ -35,14 +35,30 @@ try:
 except Exception as e:
     print(f"⚠️ Logging setup failed: {e}")
 
-# 4️⃣ Connexion à Snowflake
+
+# Récupération des variables d'environnement
+sf_user = os.getenv("SNOWFLAKE_USER")
+sf_password = os.getenv("SNOWFLAKE_PASSWORD")
+sf_account = os.getenv("SNOWFLAKE_ACCOUNT")
+sf_org = os.getenv("SNOWFLAKE_ORGANIZATION")
+sf_warehouse = os.getenv("SNOWFLAKE_WAREHOUSE")
+sf_database = os.getenv("SNOWFLAKE_DATABASE")
+sf_schema = os.getenv("SNOWFLAKE_SCHEMA")
+
+# Fusion account + organization si org existe
+if sf_org:
+    sf_account_full = f"{sf_account}.{sf_org}"
+else:
+    sf_account_full = sf_account
+
+# 4️⃣ Connexion Snowflake
 conn = snowflake.connector.connect(
-    user=os.getenv("SNOWFLAKE_USER"),
-    password=os.getenv("SNOWFLAKE_PASSWORD"),
-    account=os.getenv("SNOWFLAKE_ACCOUNT"),
-    warehouse=os.getenv("SNOWFLAKE_WAREHOUSE"),
-    database=os.getenv("SNOWFLAKE_DATABASE"),
-    schema=os.getenv("SNOWFLAKE_SCHEMA")
+    user=sf_user,
+    password=sf_password,
+    account=sf_account_full,
+    warehouse=sf_warehouse,
+    database=sf_database,
+    schema=sf_schema
 )
 cursor = conn.cursor()
 
