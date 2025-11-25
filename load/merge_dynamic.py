@@ -5,10 +5,17 @@ from dotenv import load_dotenv
 import snowflake.connector
 from snowflake.connector.pandas_tools import write_pandas
 import logging
-from snowflake_utils import execute_sql
 import csv
 from datetime import datetime
+
+# --- allow root-level imports when executed from GitHub Actions ---
+import sys
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.append(str(ROOT))
+
 from checks.writer_report_xlsx import save_ingestion_report_xlsx
+from snowflake_utils import execute_sql
+
 
 # 1️⃣ Chargement des variables d'environnement
 load_dotenv()
