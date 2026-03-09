@@ -34,21 +34,49 @@ resource "snowflake_grant_privileges_to_account_role" "database_usage" {
   ]
 }
 
-# ✅ 3️⃣  Schema grants (USAGE sur RAW, STAGING, FINAL)
-locals {
-  schemas = ["RAW", "STAGING", "FINAL"]
-}
+# ✅ 3️⃣  Schema grants (moindre privilège par schéma)
 
-resource "snowflake_grant_privileges_to_account_role" "schema_usage" {
+# RAW : lecture seule — l'ETL Python gère l'écriture
+resource "snowflake_grant_privileges_to_account_role" "schema_raw_usage" {
   account_role_name = snowflake_account_role.transform.name
   privileges        = ["USAGE"]
 
   on_schema {
-    all_schemas_in_database = snowflake_database.nyc_taxi_db.name
+    schema_name = "${snowflake_database.nyc_taxi_db.name}.RAW"
   }
 
   depends_on = [
-    snowflake_database.nyc_taxi_db,
+    snowflake_schema.raw,
+    snowflake_account_role.transform
+  ]
+}
+
+# STAGING : dbt crée et remplace des tables/vues ici
+resource "snowflake_grant_privileges_to_account_role" "schema_staging_usage" {
+  account_role_name = snowflake_account_role.transform.name
+  privileges        = ["USAGE", "CREATE TABLE", "CREATE VIEW"]
+
+  on_schema {
+    schema_name = "${snowflake_database.nyc_taxi_db.name}.STAGING"
+  }
+
+  depends_on = [
+    snowflake_schema.staging,
+    snowflake_account_role.transform
+  ]
+}
+
+# FINAL : dbt crée et remplace des tables/vues ici
+resource "snowflake_grant_privileges_to_account_role" "schema_final_usage" {
+  account_role_name = snowflake_account_role.transform.name
+  privileges        = ["USAGE", "CREATE TABLE", "CREATE VIEW"]
+
+  on_schema {
+    schema_name = "${snowflake_database.nyc_taxi_db.name}.FINAL"
+  }
+
+  depends_on = [
+    snowflake_schema.final,
     snowflake_account_role.transform
   ]
 }
@@ -58,10 +86,10 @@ resource "snowflake_grant_privileges_to_account_role" "schema_usage" {
 # GRANT ALL PRIVILEGES ON EXISTING TABLES
 ##############################################
 
-# RAW
+# RAW — lecture seule pour TRANSFORM
 resource "snowflake_grant_privileges_to_account_role" "raw_tables_existing" {
   account_role_name = snowflake_account_role.transform.name
-  privileges        = ["ALL PRIVILEGES"]
+  privileges        = ["SELECT"]
 
   on_schema_object {
     all {
@@ -116,10 +144,10 @@ resource "snowflake_grant_privileges_to_account_role" "final_tables_existing" {
 # GRANT ALL PRIVILEGES ON FUTURE TABLES
 ##############################################
 
-# RAW
+# RAW — lecture seule pour TRANSFORM
 resource "snowflake_grant_privileges_to_account_role" "raw_tables_future" {
   account_role_name = snowflake_account_role.transform.name
-  privileges        = ["ALL PRIVILEGES"]
+  privileges        = ["SELECT"]
 
   on_schema_object {
     future {
@@ -171,9 +199,11 @@ resource "snowflake_grant_privileges_to_account_role" "final_tables_future" {
 }
 
 # ==========================================================
-# ✅ Résumé :
-# - Le rôle TRANSFORM reçoit :
+# ✅ Résumé (moindre privilège) :
+# - TRANSFORM reçoit :
 #   - USAGE + OPERATE sur le warehouse
-#   - USAGE sur la database et les 3 schémas
-#   - ALL PRIVILEGES sur toutes les tables existantes et futures
+#   - USAGE sur la database
+#   - RAW    : USAGE schéma + SELECT tables (lecture source)
+#   - STAGING: USAGE + CREATE TABLE + CREATE VIEW + ALL sur tables
+#   - FINAL  : USAGE + CREATE TABLE + CREATE VIEW + ALL sur tables
 # ==========================================================
