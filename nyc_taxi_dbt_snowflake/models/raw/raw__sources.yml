@@ -7,4 +7,4 @@ sources:
     description: "Raw Snowflake tables imported from Parquet files"
     tables:
       - name: YELLOW_TAXI_TRIPS_V2
-        description: "NYC Yellow Taxi 2024–2025 data ingested via Python pipeline"
+        description: "NYC Yellow Taxi 2024–present data ingested via Python pipeline (Jan 2024 to previous month)"
