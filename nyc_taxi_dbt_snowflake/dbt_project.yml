@@ -10,9 +10,6 @@ target-path: "target"
 
 models:
   nyc_taxi_dbt_snowflake:
-    raw:
-      +schema: RAW
-      +materialized: view
     staging:
       +schema: STAGING
       +materialized: table
@@ -25,6 +22,8 @@ models:
 
 seeds:
   nyc_taxi_dbt_snowflake:
+    +schema: STAGING
+  dbt_project_evaluator:
     +schema: STAGING
 
 vars:
