@@ -14,4 +14,4 @@ WITH agg AS (
 
 SELECT *
 FROM agg
-ORDER BY trip_date;
+ORDER BY trip_date

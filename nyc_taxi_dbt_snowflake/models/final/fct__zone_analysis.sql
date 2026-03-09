@@ -24,5 +24,5 @@ zone_agg AS (
 
 SELECT *
 FROM zone_agg
-ORDER BY total_trips DESC;
+ORDER BY total_trips DESC
 
