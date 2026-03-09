@@ -18,3 +18,12 @@ models:
     final:
       +schema: FINAL
       +materialized: table
+  dbt_project_evaluator:
+    +schema: PROJECT_EVALUATOR
+    +materialized: table
+
+vars:
+  dbt_project_evaluator:
+    # Seuils de couverture (0-100)
+    documentation_coverage_target: 0   # On part de 0 pour voir l'état réel
+    test_coverage_target: 0            # Idem — on monte progressivement

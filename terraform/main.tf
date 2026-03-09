@@ -18,7 +18,7 @@ resource "snowflake_schema" "final" {
 }
 
 resource "snowflake_warehouse" "transform_wh" {
-  name                = "NYC_TAXI_WH_V2"
+  name                = "NYC_TAXI_WH_RNCP"
   warehouse_size      = "MEDIUM"
   auto_suspend        = 60
   auto_resume         = true
