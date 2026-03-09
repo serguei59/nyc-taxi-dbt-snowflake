@@ -19,7 +19,7 @@ zone_agg AS (
         ROUND(AVG(trip_duration_min), 2) AS avg_duration,
         ROUND(AVG(tip_pct), 2) AS avg_tip_pct
     FROM base
-    GROUP BY pulocationid
+    GROUP BY pu_location_id
 )
 
 SELECT *
