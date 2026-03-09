@@ -21,17 +21,17 @@ import {
 
 import {
   to = snowflake_schema.raw
-  id = "NYC_TAXI_DB_RNCP|RAW"
+  id = "NYC_TAXI_DB_RNCP.RAW"
 }
 
 import {
   to = snowflake_schema.staging
-  id = "NYC_TAXI_DB_RNCP|STAGING"
+  id = "NYC_TAXI_DB_RNCP.STAGING"
 }
 
 import {
   to = snowflake_schema.final
-  id = "NYC_TAXI_DB_RNCP|FINAL"
+  id = "NYC_TAXI_DB_RNCP.FINAL"
 }
 
 import {
@@ -41,10 +41,10 @@ import {
 
 import {
   to = snowflake_table.raw_yellow_taxi_trips_v2
-  id = "NYC_TAXI_DB_RNCP|RAW|YELLOW_TAXI_TRIPS_V2"
+  id = "NYC_TAXI_DB_RNCP.RAW.YELLOW_TAXI_TRIPS_V2"
 }
 
 import {
   to = snowflake_table.raw_buffer_yellow_taxi_trips_v2
-  id = "NYC_TAXI_DB_RNCP|RAW|BUFFER_YELLOW_TAXI_TRIPS_V2"
+  id = "NYC_TAXI_DB_RNCP.RAW.BUFFER_YELLOW_TAXI_TRIPS_V2"
 }
