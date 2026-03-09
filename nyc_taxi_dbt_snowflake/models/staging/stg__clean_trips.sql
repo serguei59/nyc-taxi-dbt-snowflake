@@ -50,5 +50,5 @@ cleaned AS (
       AND PASSENGER_COUNT BETWEEN 1 AND 6
 )
 
-SELECT * 
-FROM cleaned;
+SELECT *
+FROM cleaned
