@@ -60,6 +60,8 @@ jobs:
         working-directory: ./terraform
         run: |
           terraform apply -auto-approve -input=false \
+            -replace="snowflake_grant_privileges_to_account_role.raw_tables_existing" \
+            -replace="snowflake_grant_privileges_to_account_role.raw_tables_future" \
             -var "account=${TF_VAR_account}" \
             -var "organization=${TF_VAR_organization}" \
             -var "user=${TF_VAR_user}" \
