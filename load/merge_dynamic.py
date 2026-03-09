@@ -43,6 +43,7 @@ sf_account = os.getenv("SNOWFLAKE_ACCOUNT")
 sf_warehouse = os.getenv("SNOWFLAKE_WAREHOUSE")
 sf_database = os.getenv("SNOWFLAKE_DATABASE")
 sf_schema = os.getenv("SNOWFLAKE_SCHEMA")
+sf_role = os.getenv("SNOWFLAKE_ROLE")
 
 """ # Fusion account + organization si org existe
 if sf_org:
@@ -57,7 +58,8 @@ conn = snowflake.connector.connect(
     account=sf_account,
     warehouse=sf_warehouse,
     database=sf_database,
-    schema=sf_schema
+    schema=sf_schema,
+    role=sf_role
 )
 cursor = conn.cursor()
 
