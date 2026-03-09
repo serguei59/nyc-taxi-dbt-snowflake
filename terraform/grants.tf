@@ -21,7 +21,7 @@ resource "snowflake_grant_privileges_to_account_role" "warehouse_usage_operate" 
 # ✅ 2️⃣  Database usage grant
 resource "snowflake_grant_privileges_to_account_role" "database_usage" {
   account_role_name = snowflake_account_role.transform.name
-  privileges        = ["USAGE"]
+  privileges        = ["USAGE", "CREATE SCHEMA"]
 
   on_account_object {
     object_type = "DATABASE"
@@ -202,7 +202,7 @@ resource "snowflake_grant_privileges_to_account_role" "final_tables_future" {
 # ✅ Résumé (moindre privilège) :
 # - TRANSFORM reçoit :
 #   - USAGE + OPERATE sur le warehouse
-#   - USAGE sur la database
+#   - USAGE + CREATE SCHEMA sur la database
 #   - RAW    : USAGE schéma + SELECT tables (lecture source)
 #   - STAGING: USAGE + CREATE TABLE + CREATE VIEW + ALL sur tables
 #   - FINAL  : USAGE + CREATE TABLE + CREATE VIEW + ALL sur tables
