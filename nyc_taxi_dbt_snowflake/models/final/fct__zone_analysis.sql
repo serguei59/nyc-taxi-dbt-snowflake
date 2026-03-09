@@ -2,7 +2,7 @@
 
 WITH base AS (
     SELECT
-        pulocationid,
+        pu_location_id,
         total_amount,
         trip_distance,
         trip_duration_min,
@@ -12,7 +12,7 @@ WITH base AS (
 
 zone_agg AS (
     SELECT
-        pulocationid AS pickup_zone,
+        pu_location_id AS pickup_zone,
         COUNT(*) AS total_trips,
         ROUND(AVG(total_amount), 2) AS avg_revenue,
         ROUND(AVG(trip_distance), 2) AS avg_distance,
