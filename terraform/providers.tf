@@ -22,5 +22,5 @@ provider "snowflake" {
   user = var.user
   password = var.password
   role     = var.role
-  preview_features_enabled = ["snowflake_table_resource"]
+  # preview_features_enabled = ["snowflake_table_resource"]  # tables gérées par ETL
 }

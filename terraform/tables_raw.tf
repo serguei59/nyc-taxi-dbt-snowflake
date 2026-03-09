@@ -27,35 +27,35 @@ locals {
 }
 
 # -----------------------
-# BUFFER_YELLOW_TAXI_TRIPS_V2
+# Tables gérées par l'ETL Python (merge_dynamic.py)
+# via CREATE TABLE IF NOT EXISTS — pas besoin de Terraform.
+# Bug provider v2.10.1 : snowflake_table crashe à l'import.
 # -----------------------
-resource "snowflake_table" "raw_buffer_yellow_taxi_trips_v2" {
-  database = snowflake_database.nyc_taxi_db.name
-  schema   = snowflake_schema.raw.name
-  name     = "BUFFER_YELLOW_TAXI_TRIPS_V2"
 
-  dynamic "column" {
-    for_each = local.raw_columns
-    content {
-      name = split(" ", column.value)[0]
-      type = split(" ", column.value)[1]
-    }
-  }
-}
+# resource "snowflake_table" "raw_buffer_yellow_taxi_trips_v2" {
+#   database = snowflake_database.nyc_taxi_db.name
+#   schema   = snowflake_schema.raw.name
+#   name     = "BUFFER_YELLOW_TAXI_TRIPS_V2"
+#
+#   dynamic "column" {
+#     for_each = local.raw_columns
+#     content {
+#       name = split(" ", column.value)[0]
+#       type = split(" ", column.value)[1]
+#     }
+#   }
+# }
 
-# -----------------------
-# YELLOW_TAXI_TRIPS_V2
-# -----------------------
-resource "snowflake_table" "raw_yellow_taxi_trips_v2" {
-  database = snowflake_database.nyc_taxi_db.name
-  schema   = snowflake_schema.raw.name
-  name     = "YELLOW_TAXI_TRIPS_V2"
-
-  dynamic "column" {
-    for_each = local.raw_columns
-    content {
-      name = split(" ", column.value)[0]
-      type = split(" ", column.value)[1]
-    }
-  }
-}
+# resource "snowflake_table" "raw_yellow_taxi_trips_v2" {
+#   database = snowflake_database.nyc_taxi_db.name
+#   schema   = snowflake_schema.raw.name
+#   name     = "YELLOW_TAXI_TRIPS_V2"
+#
+#   dynamic "column" {
+#     for_each = local.raw_columns
+#     content {
+#       name = split(" ", column.value)[0]
+#       type = split(" ", column.value)[1]
+#     }
+#   }
+# }
