@@ -105,6 +105,7 @@ jobs:
         run: echo "yearmonth=$(date +'%Y-%m')" >> $GITHUB_OUTPUT
 
       - name: Cache parquet files
+        id: cache-parquet
         uses: actions/cache@v4
         with:
           path: extract/data/
@@ -118,6 +119,7 @@ jobs:
           mkdir -p load/verifications
 
       - name: Run Python ETL
+        if: steps.cache-parquet.outputs.cache-hit != 'true'
         run: |
           python extract/download_parquet.py
           python load/merge_dynamic.py
