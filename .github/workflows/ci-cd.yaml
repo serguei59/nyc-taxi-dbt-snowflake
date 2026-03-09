@@ -100,6 +100,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Get current year-month
+        id: date
+        run: echo "yearmonth=$(date +'%Y-%m')" >> $GITHUB_OUTPUT
+
+      - name: Cache parquet files
+        uses: actions/cache@v4
+        with:
+          path: extract/data/
+          key: parquet-${{ runner.os }}-${{ steps.date.outputs.yearmonth }}
+          restore-keys: parquet-${{ runner.os }}-
+
       - name: Ensure log & data folders exist
         run: |
           mkdir -p logs

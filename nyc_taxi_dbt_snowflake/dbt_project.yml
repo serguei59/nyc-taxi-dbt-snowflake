@@ -5,6 +5,7 @@ config-version: 2
 profile: 'nyc_taxi_dbt_snowflake'
 
 model-paths: ["models"]
+seed-paths: ["seeds"]
 target-path: "target"
 
 models:
@@ -21,6 +22,10 @@ models:
   dbt_project_evaluator:
     +schema: PROJECT_EVALUATOR
     +materialized: table
+
+seeds:
+  nyc_taxi_dbt_snowflake:
+    +schema: STAGING
 
 vars:
   dbt_project_evaluator:
