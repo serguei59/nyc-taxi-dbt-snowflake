@@ -38,13 +38,3 @@ import {
   to = snowflake_user.dbt_user
   id = "DBT"
 }
-
-import {
-  to = snowflake_table.raw_yellow_taxi_trips_v2
-  id = "NYC_TAXI_DB_RNCP.RAW.YELLOW_TAXI_TRIPS_V2"
-}
-
-import {
-  to = snowflake_table.raw_buffer_yellow_taxi_trips_v2
-  id = "NYC_TAXI_DB_RNCP.RAW.BUFFER_YELLOW_TAXI_TRIPS_V2"
-}
