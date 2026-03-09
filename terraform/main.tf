@@ -1,5 +1,5 @@
 resource "snowflake_database" "nyc_taxi_db" {
-  name = "NYC_TAXI_DB_V2"
+  name = "NYC_TAXI_DB_RNCP"
 }
 
 resource "snowflake_schema" "raw" {

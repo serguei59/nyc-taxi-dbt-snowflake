@@ -13,7 +13,7 @@ resource "snowflake_user" "dbt_user" {
   password         = var.dbt_user_password
   default_role     = snowflake_account_role.transform.name
   default_warehouse = snowflake_warehouse.transform_wh.name
-  must_change_password = true
+  must_change_password = false
 }
 
 # Attribution du rôle TRANSFORM à l'utilisateur DBT
