@@ -1,4 +1,11 @@
 terraform {
+  cloud {
+    organization = "nyc-taxi-project"
+    workspaces {
+      name = "rncp-e5"
+    }
+  }
+
   required_providers {
     snowflake = {
       source  = "Snowflakedb/snowflake"
