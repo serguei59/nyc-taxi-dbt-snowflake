@@ -8,3 +8,7 @@ sources:
     tables:
       - name: YELLOW_TAXI_TRIPS_V2
         description: "NYC Yellow Taxi 2024–present data ingested via Python pipeline (Jan 2024 to previous month)"
+        loaded_at_field: INGESTION_TS
+        freshness:
+          warn_after: {count: 35, period: day}
+          error_after: {count: 60, period: day}
