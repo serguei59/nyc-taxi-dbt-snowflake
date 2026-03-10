@@ -35,9 +35,9 @@ cleaned AS (
         AIRPORT_FEE AS airport_fee,
 
         -- Temporal dimensions
-        DATE(TPEP_PICKUP_DATETIME) AS trip_date,
-        EXTRACT(HOUR FROM TPEP_PICKUP_DATETIME) AS pickup_hour,
-        EXTRACT(MONTH FROM TPEP_PICKUP_DATETIME) AS pickup_month,
+        DATE(CAST(TPEP_PICKUP_DATETIME AS TIMESTAMP_NTZ)) AS trip_date,
+        EXTRACT(HOUR FROM CAST(TPEP_PICKUP_DATETIME AS TIMESTAMP_NTZ)) AS pickup_hour,
+        EXTRACT(MONTH FROM CAST(TPEP_PICKUP_DATETIME AS TIMESTAMP_NTZ)) AS pickup_month,
 
         CURRENT_TIMESTAMP() AS ingestion_ts
 
