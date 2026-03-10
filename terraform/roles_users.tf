@@ -26,3 +26,26 @@ resource "snowflake_grant_account_role" "grant_transform_to_dbt" {
     snowflake_user.dbt_user
   ]
 }
+
+# ==========================================================
+# Rôle ANALYST — lecture seule sur FINAL
+# ==========================================================
+
+resource "snowflake_account_role" "analyst" {
+  name = "ANALYST"
+}
+
+# LULU reçoit TRANSFORM (accès complet données) et ANALYST (démo lecture seule)
+resource "snowflake_grant_account_role" "grant_transform_to_lulu" {
+  role_name = snowflake_account_role.transform.name
+  user_name = "LULU"
+
+  depends_on = [snowflake_account_role.transform]
+}
+
+resource "snowflake_grant_account_role" "grant_analyst_to_lulu" {
+  role_name = snowflake_account_role.analyst.name
+  user_name = "LULU"
+
+  depends_on = [snowflake_account_role.analyst]
+}
