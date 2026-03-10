@@ -130,3 +130,121 @@ models:
                 column_name: AVG_DISTANCE
                 min_value: 0
                 max_value: 100
+
+      - name: dim_date
+        description: "Calendar dimension derived from trip dates in stg__clean_trips"
+        columns:
+          - name: date_id
+            description: "Primary key — calendar date"
+            tests:
+              - not_null
+              - unique
+
+      - name: year
+        tests:
+          - not_null
+
+      - name: month
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                column_name: month
+                min_value: 1
+                max_value: 12
+
+      - name: is_weekend
+        tests:
+          - not_null
+
+      - name: dim_location
+        description: "NYC TLC zone dimension — distinct pickup and dropoff location IDs"
+        columns:
+          - name: location_id
+            description: "Primary key — TLC zone identifier"
+            tests:
+              - not_null
+              - unique
+
+      - name: borough
+        description: "NYC borough derived from location_id range"
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: ['Manhattan', 'Brooklyn', 'Queens', 'Bronx', 'Staten Island', 'Unknown']
+
+      - name: dim_payment_type
+        description: "TLC payment type reference table"
+        columns:
+          - name: payment_type_id
+            description: "Primary key — TLC payment code (1-5)"
+            tests:
+              - not_null
+              - unique
+
+      - name: payment_type_label
+        tests:
+          - not_null
+
+      - name: dim_rate_code
+        description: "TLC rate code reference table"
+        columns:
+          - name: ratecode_id
+            description: "Primary key — TLC rate code (1-6, 99)"
+            tests:
+              - not_null
+              - unique
+
+      - name: rate_description
+        tests:
+          - not_null
+
+      - name: fct__trips
+        description: "Trip-grain fact table — one row per NYC Yellow Taxi trip with FK references to all dimensions"
+        tests:
+          - dbt_expectations.expect_table_row_count_to_be_between:
+              min_value: 1
+              max_value: 80000000
+        columns:
+          - name: date_fk
+            description: "Foreign key to dim_date.date_id"
+            tests:
+              - not_null
+
+      - name: pu_location_fk
+        description: "Foreign key to dim_location.location_id (pickup)"
+        tests:
+          - not_null
+
+      - name: do_location_fk
+        description: "Foreign key to dim_location.location_id (dropoff)"
+        tests:
+          - not_null
+
+      - name: payment_type_fk
+        description: "Foreign key to dim_payment_type.payment_type_id"
+        tests:
+          - not_null
+
+      - name: ratecode_fk
+        description: "Foreign key to dim_rate_code.ratecode_id"
+        tests:
+          - not_null
+
+      - name: total_amount
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                column_name: total_amount
+                min_value: 0
+                
+      - name: trip_distance
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                column_name: trip_distance
+                min_value: 0.1
+                max_value: 100
+
