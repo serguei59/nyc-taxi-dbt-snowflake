@@ -19,9 +19,12 @@ SELECT
     {{ dbt_utils.generate_surrogate_key([
         'pickup_datetime',
         'dropoff_datetime',
+        'vendor_id',
         'pu_location_id',
         'do_location_id',
-        'vendor_id'
+        'passenger_count',
+        'total_amount',
+        'trip_distance'
     ]) }} AS trip_key,
 
     vendor_id,
