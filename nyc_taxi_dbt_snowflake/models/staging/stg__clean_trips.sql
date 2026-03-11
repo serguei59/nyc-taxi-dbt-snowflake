@@ -55,6 +55,8 @@ cleaned AS (
     WHERE TOTAL_AMOUNT >= 0
       AND TRIP_DISTANCE BETWEEN 0.1 AND 100
       AND dropoff_ts > pickup_ts
+      AND DATEDIFF('minute', pickup_ts, dropoff_ts) BETWEEN 1 AND 1440
+      AND DATE(pickup_ts) BETWEEN '2024-01-01' AND '2025-11-30'
       AND PULOCATIONID IS NOT NULL
       AND DOLOCATIONID IS NOT NULL
       AND PASSENGER_COUNT BETWEEN 1 AND 6
