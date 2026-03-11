@@ -16,7 +16,7 @@ This project implements the full data warehouse lifecycle on a real-world datase
 - Raw ingestion of NYC TLC Parquet files via a Python ETL pipeline
 - Infrastructure provisioned and version-controlled with Terraform
 - Data transformation and quality enforcement with dbt
-- Star schema modeling (fact table + 4 dimension tables) ready for Power BI
+- Star schema modeling (fact table + 4 dimension tables) ready for BI consumption
 - SCD Type 2 historization via dbt snapshots
 - Role-based access control with least-privilege enforcement
 - Snowflake Time Travel for point-in-time recovery
@@ -53,6 +53,10 @@ STAGING.STG__CLEAN_TRIPS
          |  dbt snapshot — SCD Type 2
          v
 SNAPSHOTS.SCD__CLEAN_TRIPS
+         |
+         |  Metabase (Docker)
+         v
+Dashboards BI — rôle ANALYST, SELECT FINAL uniquement
 ```
 
 Infrastructure is declared in Terraform and applied automatically on every push.
@@ -69,7 +73,7 @@ Infrastructure is declared in Terraform and applied automatically on every push.
 | ETL | Python 3.11 · pandas · snowflake-connector-python |
 | CI/CD | GitHub Actions |
 | State management | Terraform Cloud (org: nyc-taxi-project) |
-| BI layer | Power BI — connected to FINAL schema |
+| BI layer | Metabase (Docker) — connected to FINAL schema via ANALYST role |
 
 ---
 
@@ -152,7 +156,7 @@ Roles are provisioned by Terraform. No manual grants.
 |---|---|---|
 | `ACCOUNTADMIN` | Full administrative access | Terraform |
 | `TRANSFORM` | SELECT on RAW · full access on STAGING, FINAL, SNAPSHOTS | dbt, ETL |
-| `ANALYST` | SELECT on FINAL only | Power BI, data consumers |
+| `ANALYST` | SELECT on FINAL only | Metabase, data consumers |
 
 The `ANALYST` role enforces read-only access to the serving layer.
 It cannot read raw or staging data.
@@ -185,6 +189,22 @@ enabling historical analysis of any data state at any point in time.
 
 ---
 
+## RNCP 37638 — Évaluation E5/E6
+
+Ce projet couvre les compétences du Bloc 3 Data Warehouse (épreuves E5 et E6).
+
+| Compétence | Livrable | Fichier |
+|---|---|---|
+| C13 — Modélisation DWH | Schéma en étoile (4 dims + fct__trips) | [star_schema.md](docs/star_schema.md) |
+| C14 — Pipeline ETL/ELT + qualité | Python ETL + dbt run/test CI/CD | [architecture.md](docs/architecture.md) |
+| C15 — Restitution BI | Metabase Docker connecté à FINAL via ANALYST | [guide_evaluateur.md](docs/guide_evaluateur.md) |
+| C16 — Gouvernance + continuité | Rôles TRANSFORM/ANALYST + Time Travel 7j | [time_travel.md](docs/time_travel.md) |
+| C17 — Historisation SCD2 | dbt snapshot scd__clean_trips (~67M lignes) | [guide_evaluateur.md](docs/guide_evaluateur.md) |
+
+Guide d'évaluation pas à pas : **[docs/guide_evaluateur.md](docs/guide_evaluateur.md)**
+
+---
+
 ## Local setup
 
 ```bash
@@ -197,6 +217,10 @@ cd etl && pip install -r requirements.txt && python merge_dynamic.py
 # run transformations
 cd nyc_taxi_dbt_snowflake
 dbt deps && dbt run && dbt test && dbt snapshot && dbt source freshness
+
+# BI layer (Docker requis)
+docker run -d -p 3000:3000 --name metabase metabase/metabase
+# puis ouvrir localhost:3000
 ```
 
 ---
@@ -205,9 +229,9 @@ dbt deps && dbt run && dbt test && dbt snapshot && dbt source freshness
 
 - [Architecture overview](docs/architecture.md)
 - [Star schema — MCD / MLD / MPD](docs/star_schema.md)
-- [Data dictionary](docs/data_dictionary.md)
+- [Data dictionary](docs/data_dictionnary.md)
 - [Time Travel runbook](docs/time_travel.md)
-- [Evaluator guide](docs/guide_evaluateur.md)
+- [Evaluator guide — RNCP E5/E6](docs/guide_evaluateur.md)
 
 ---
 

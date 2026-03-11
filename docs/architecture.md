@@ -21,6 +21,8 @@ FINAL.FCT__TRIPS                  ← Table de faits (grain : 1 trajet)
 FINAL.FCT__DAILY_SUMMARY          ← Agrégat quotidien (data mart)
 FINAL.FCT__ZONE_ANALYSIS          ← Agrégat par zone (data mart)
 FINAL.FCT__HOURLY_PATTERNS        ← Agrégat horaire (data mart)
+↓  Metabase (Docker local)
+Dashboards BI                     ← Visualisation via rôle ANALYST
 
 ## Rôles Snowflake
 
@@ -28,7 +30,7 @@ FINAL.FCT__HOURLY_PATTERNS        ← Agrégat horaire (data mart)
 |---|---|---|
 | `ACCOUNTADMIN` | Tous | Administration |
 | `TRANSFORM` | SELECT RAW, CREATE/INSERT STAGING+FINAL | dbt + ETL |
-| `ANALYST` | SELECT FINAL uniquement | Consommateurs BI (Power BI) |
+| `ANALYST` | SELECT FINAL uniquement | Consommateurs BI (Metabase) |
 
 ## Pipeline CI/CD
 
@@ -48,3 +50,4 @@ Push sur dev/main
 - **Python** `3.11` — pandas, snowflake-connector-python
 - **GitHub Actions** — CI/CD automatisé
 - **Terraform Cloud** — state backend (org: `nyc-taxi-project`, workspace: `rncp-e5`)
+- **Metabase** — BI via Docker (connecteur Snowflake natif, rôle ANALYST)

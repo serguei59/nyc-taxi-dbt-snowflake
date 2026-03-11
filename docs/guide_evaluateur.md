@@ -4,7 +4,7 @@
 
 - Accès au dépôt GitHub (lien fourni par le candidat)
 - Compte Snowflake communiqué par le candidat (rôle ANALYST)
-- Power BI Desktop installé (optionnel)
+- Docker installé (pour Metabase — optionnel)
 
 ---
 
@@ -148,9 +148,18 @@ Se connecter avec le rôle ANALYST :
 
 ---
 
-## ÉTAPE 9 — Power BI (C15)
+## ÉTAPE 9 — Metabase (C15)
 
-Ouvrir le fichier `.pbix` fourni par le candidat.
+Lancer Metabase en local (Docker requis) :
+
+    docker run -d -p 3000:3000 --name metabase metabase/metabase
+
+Puis ouvrir `localhost:3000` et connecter Snowflake :
+- Serveur : `CGSKXSB-JP35471.snowflakecomputing.com`
+- Warehouse : `NYC_TAXI_WH_RNCP`
+- Database : `NYC_TAXI_DB_RNCP`
+- Rôle : `ANALYST`
+
 Vérifier les visuels :
 - Évolution du chiffre d'affaires mensuel
 - Répartition des trajets par borough
@@ -165,6 +174,6 @@ Vérifier les visuels :
 |---|---|---|
 | C13 — Modélisation DWH | Schéma en étoile FINAL | 4 |
 | C14 — Qualité données | dbt tests + source freshness | 5 |
-| C15 — Restitution BI | Power BI connecté à FINAL | 9 |
+| C15 — Restitution BI | Metabase (Docker) connecté à FINAL via rôle ANALYST | 9 |
 | C16 — Gouvernance | Rôles TRANSFORM/ANALYST + Time Travel | 2, 7, 8 |
 | C17 — Historisation | Snapshots SCD Type 2 | 6 |
