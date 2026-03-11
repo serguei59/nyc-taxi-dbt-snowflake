@@ -223,3 +223,10 @@ nyc_taxi_dbt_snowflake/extract/data/
 *.parquet
 .env
 /conf
+
+# Terraform local files
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/terraform.tfvars

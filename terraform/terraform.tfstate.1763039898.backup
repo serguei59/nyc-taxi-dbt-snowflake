@@ -1,0 +1,277 @@
+{
+  "version": 4,
+  "terraform_version": "1.10.2",
+  "serial": 63,
+  "lineage": "6e70f8d9-6ebd-4953-8290-17c3a0d65245",
+  "outputs": {
+    "snowflake_database": {
+      "value": "NYC_TAXI_DB_V2",
+      "type": "string"
+    },
+    "snowflake_role": {
+      "value": "TRANSFORM",
+      "type": "string"
+    },
+    "snowflake_user": {
+      "value": "DBT",
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "mode": "managed",
+      "type": "snowflake_grant_privileges_to_account_role",
+      "name": "database_usage",
+      "provider": "provider[\"registry.terraform.io/snowflakedb/snowflake\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "account_role_name": "TRANSFORM",
+            "all_privileges": false,
+            "always_apply": false,
+            "always_apply_trigger": null,
+            "id": "\"TRANSFORM\"|false|false|USAGE|OnAccountObject|DATABASE|\"NYC_TAXI_DB_V2\"",
+            "on_account": false,
+            "on_account_object": [
+              {
+                "object_name": "NYC_TAXI_DB_V2",
+                "object_type": "DATABASE"
+              }
+            ],
+            "on_schema": [],
+            "on_schema_object": [],
+            "privileges": [
+              "USAGE"
+            ],
+            "timeouts": null,
+            "with_grant_option": false
+          },
+          "sensitive_attributes": [],
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInJlYWQiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "snowflake_account_role.transform",
+            "snowflake_database.nyc_taxi_db"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "snowflake_grant_privileges_to_account_role",
+      "name": "raw_tables_existing",
+      "provider": "provider[\"registry.terraform.io/snowflakedb/snowflake\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "account_role_name": "TRANSFORM",
+            "all_privileges": false,
+            "always_apply": false,
+            "always_apply_trigger": null,
+            "id": "\"TRANSFORM\"|false|false|ALL PRIVILEGES|OnSchemaObject|OnAll|TABLES|InSchema|\"NYC_TAXI_DB_V2\".\"RAW\"",
+            "on_account": false,
+            "on_account_object": [],
+            "on_schema": [],
+            "on_schema_object": [
+              {
+                "all": [
+                  {
+                    "in_database": "",
+                    "in_schema": "NYC_TAXI_DB_V2.RAW",
+                    "object_type_plural": "TABLES"
+                  }
+                ],
+                "future": [],
+                "object_name": "",
+                "object_type": ""
+              }
+            ],
+            "privileges": [
+              "ALL PRIVILEGES"
+            ],
+            "timeouts": null,
+            "with_grant_option": false
+          },
+          "sensitive_attributes": [],
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInJlYWQiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "snowflake_account_role.transform",
+            "snowflake_database.nyc_taxi_db"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "snowflake_grant_privileges_to_account_role",
+      "name": "schema_usage",
+      "provider": "provider[\"registry.terraform.io/snowflakedb/snowflake\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "account_role_name": "TRANSFORM",
+            "all_privileges": false,
+            "always_apply": false,
+            "always_apply_trigger": null,
+            "id": "\"TRANSFORM\"|false|false|USAGE|OnSchema|OnAllSchemasInDatabase|\"NYC_TAXI_DB_V2\"",
+            "on_account": false,
+            "on_account_object": [],
+            "on_schema": [
+              {
+                "all_schemas_in_database": "NYC_TAXI_DB_V2",
+                "future_schemas_in_database": "",
+                "schema_name": ""
+              }
+            ],
+            "on_schema_object": [],
+            "privileges": [
+              "USAGE"
+            ],
+            "timeouts": null,
+            "with_grant_option": false
+          },
+          "sensitive_attributes": [],
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInJlYWQiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "snowflake_account_role.transform",
+            "snowflake_database.nyc_taxi_db"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "snowflake_grant_privileges_to_account_role",
+      "name": "staging_tables_existing",
+      "provider": "provider[\"registry.terraform.io/snowflakedb/snowflake\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "account_role_name": "TRANSFORM",
+            "all_privileges": false,
+            "always_apply": false,
+            "always_apply_trigger": null,
+            "id": "\"TRANSFORM\"|false|false|ALL PRIVILEGES|OnSchemaObject|OnAll|TABLES|InSchema|\"NYC_TAXI_DB_V2\".\"STAGING\"",
+            "on_account": false,
+            "on_account_object": [],
+            "on_schema": [],
+            "on_schema_object": [
+              {
+                "all": [
+                  {
+                    "in_database": "",
+                    "in_schema": "NYC_TAXI_DB_V2.STAGING",
+                    "object_type_plural": "TABLES"
+                  }
+                ],
+                "future": [],
+                "object_name": "",
+                "object_type": ""
+              }
+            ],
+            "privileges": [
+              "ALL PRIVILEGES"
+            ],
+            "timeouts": null,
+            "with_grant_option": false
+          },
+          "sensitive_attributes": [],
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInJlYWQiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "snowflake_account_role.transform",
+            "snowflake_database.nyc_taxi_db"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "snowflake_grant_privileges_to_account_role",
+      "name": "staging_tables_future",
+      "provider": "provider[\"registry.terraform.io/snowflakedb/snowflake\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "account_role_name": "TRANSFORM",
+            "all_privileges": false,
+            "always_apply": false,
+            "always_apply_trigger": null,
+            "id": "\"TRANSFORM\"|false|false|ALL PRIVILEGES|OnSchemaObject|OnFuture|TABLES|InSchema|\"NYC_TAXI_DB_V2\".\"STAGING\"",
+            "on_account": false,
+            "on_account_object": [],
+            "on_schema": [],
+            "on_schema_object": [
+              {
+                "all": [],
+                "future": [
+                  {
+                    "in_database": "",
+                    "in_schema": "NYC_TAXI_DB_V2.STAGING",
+                    "object_type_plural": "TABLES"
+                  }
+                ],
+                "object_name": "",
+                "object_type": ""
+              }
+            ],
+            "privileges": [
+              "ALL PRIVILEGES"
+            ],
+            "timeouts": null,
+            "with_grant_option": false
+          },
+          "sensitive_attributes": [],
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInJlYWQiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "snowflake_account_role.transform",
+            "snowflake_database.nyc_taxi_db"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "snowflake_grant_privileges_to_account_role",
+      "name": "warehouse_usage_operate",
+      "provider": "provider[\"registry.terraform.io/snowflakedb/snowflake\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "account_role_name": "TRANSFORM",
+            "all_privileges": false,
+            "always_apply": false,
+            "always_apply_trigger": null,
+            "id": "\"TRANSFORM\"|false|false|OPERATE,USAGE|OnAccountObject|WAREHOUSE|\"NYC_TAXI_WH_V2\"",
+            "on_account": false,
+            "on_account_object": [
+              {
+                "object_name": "NYC_TAXI_WH_V2",
+                "object_type": "WAREHOUSE"
+              }
+            ],
+            "on_schema": [],
+            "on_schema_object": [],
+            "privileges": [
+              "OPERATE",
+              "USAGE"
+            ],
+            "timeouts": null,
+            "with_grant_option": false
+          },
+          "sensitive_attributes": [],
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInJlYWQiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "snowflake_account_role.transform",
+            "snowflake_warehouse.transform_wh"
+          ]
+        }
+      ]
+    }
+  ],
+  "check_results": null
+}

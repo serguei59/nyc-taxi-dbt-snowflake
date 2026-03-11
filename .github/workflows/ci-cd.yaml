@@ -1,0 +1,190 @@
+name: CI-CD Pipeline
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+      - feature/**
+  pull_request:
+    branches:
+      - dev
+      - main
+  workflow_dispatch:
+
+jobs:
+  # --------------------------------------------------------------------------
+  # 🧱 Étape 1 : Terraform - Création infrastructure Snowflake
+  # --------------------------------------------------------------------------
+  terraform:
+    name: Setup Snowflake Infrastructure
+    runs-on: ubuntu-latest
+
+    env:
+      TF_VAR_account: ${{ secrets.SNOWFLAKE_ACCOUNT_NAME }}
+      TF_VAR_organization: ${{ secrets.SNOWFLAKE_ORGANIZATION }}
+      TF_VAR_user: ${{ secrets.SNOWFLAKE_USER }}
+      TF_VAR_password: ${{ secrets.SNOWFLAKE_PASSWORD }}
+      TF_VAR_role: ${{ secrets.SNOWFLAKE_ROLE }}
+      TF_VAR_warehouse: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+      TF_VAR_dbt_user_password: ${{ secrets.DBT_PASSWORD }}
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.10.2
+
+      - name: Terraform Init
+        working-directory: ./terraform
+        run: terraform init -input=false
+
+      - name: Terraform Plan
+        working-directory: ./terraform
+        run: |
+          terraform plan -input=false \
+            -var "account=${TF_VAR_account}" \
+            -var "organization=${TF_VAR_organization}" \
+            -var "user=${TF_VAR_user}" \
+            -var "password=${TF_VAR_password}" \
+            -var "role=${TF_VAR_role}" \
+            -var "warehouse=${TF_VAR_warehouse}" \
+            -var "dbt_user_password=${TF_VAR_dbt_user_password}"
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main'
+        working-directory: ./terraform
+        run: |
+          terraform apply -auto-approve -input=false \
+            -replace="snowflake_grant_privileges_to_account_role.raw_tables_existing" \
+            -replace="snowflake_grant_privileges_to_account_role.raw_tables_future" \
+            -var "account=${TF_VAR_account}" \
+            -var "organization=${TF_VAR_organization}" \
+            -var "user=${TF_VAR_user}" \
+            -var "password=${TF_VAR_password}" \
+            -var "role=${TF_VAR_role}" \
+            -var "warehouse=${TF_VAR_warehouse}" \
+            -var "dbt_user_password=${TF_VAR_dbt_user_password}"
+
+  # --------------------------------------------------------------------------
+  # 🐍 Étape 2 : ETL Python
+  # --------------------------------------------------------------------------
+  python_etl:
+    name: Run Python ETL (Download + Ingest)
+    runs-on: ubuntu-latest
+    needs: terraform
+    if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main'
+
+    env:
+      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+      SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+      SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
+      SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
+      SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Get current year-month
+        id: date
+        run: echo "yearmonth=$(date +'%Y-%m')" >> $GITHUB_OUTPUT
+
+      - name: Cache parquet files
+        id: cache-parquet
+        uses: actions/cache@v4
+        with:
+          path: extract/data/
+          key: parquet-${{ runner.os }}-${{ steps.date.outputs.yearmonth }}
+          restore-keys: parquet-${{ runner.os }}-
+
+      - name: Ensure log & data folders exist
+        run: |
+          mkdir -p logs
+          mkdir -p extract/data
+          mkdir -p load/verifications
+
+      - name: Run Python ETL
+        if: steps.cache-parquet.outputs.cache-hit != 'true'
+        run: |
+          python extract/download_parquet.py
+          python load/merge_dynamic.py
+
+  # --------------------------------------------------------------------------
+  # 🧩 Étape 3 : Pipeline dbt (transformations + tests)
+  # --------------------------------------------------------------------------
+  dbt:
+    name: Run dbt Pipeline
+    runs-on: ubuntu-latest
+    needs: python_etl
+    if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Install dbt and dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install dbt-snowflake dbt-core pandas snowflake-connector-python
+
+      - name: Create dbt profiles.yml
+        run: |
+          mkdir -p ~/.dbt
+          cat <<EOF > ~/.dbt/profiles.yml
+          nyc_taxi_dbt_snowflake:
+            target: dev
+            outputs:
+              dev:
+                type: snowflake
+                account: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+                user: ${{ secrets.DBT_USER }}
+                password: ${{ secrets.DBT_PASSWORD }}
+                role: TRANSFORM
+                warehouse: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+                database: ${{ secrets.SNOWFLAKE_DATABASE }}
+                schema: ${{ secrets.SNOWFLAKE_SCHEMA }}
+                threads: 1
+                client_session_keep_alive: False
+          EOF
+
+      - name: Run dbt
+        working-directory: ./nyc_taxi_dbt_snowflake
+        run: |
+          dbt deps --profiles-dir ~/.dbt
+          dbt seed --full-refresh --profiles-dir ~/.dbt
+          dbt run --profiles-dir ~/.dbt
+          dbt test --profiles-dir ~/.dbt
+          dbt snapshot --profiles-dir ~/.dbt
+          dbt docs generate --profiles-dir ~/.dbt
+
+          mkdir -p ../artifacts/dbt_docs
+          cp -r target ../artifacts/dbt_docs
+
+      - name: Run dbt Project Evaluator (audit qualité)
+        working-directory: ./nyc_taxi_dbt_snowflake
+        continue-on-error: true
+        run: |
+          dbt run --select package:dbt_project_evaluator --profiles-dir ~/.dbt
+          dbt test --select package:dbt_project_evaluator --profiles-dir ~/.dbt
