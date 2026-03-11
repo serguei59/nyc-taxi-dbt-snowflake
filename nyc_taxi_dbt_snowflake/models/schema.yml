@@ -73,15 +73,46 @@ models:
           - dbt_expectations.expect_column_values_to_be_in_set:
               value_set: [1, 2, 3, 4, 5, 6, 99]
 
+      - name: trip_date
+        description: "Calendar date of the trip — derived from pickup_datetime"
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: "'2024-01-01'::DATE"
+              max_value: "'2026-12-31'::DATE"
+
       - name: pickup_datetime
         description: "Datetime when the trip started"
         tests:
           - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: "'2024-01-01'::TIMESTAMP_NTZ"
+              max_value: "'2026-12-31'::TIMESTAMP_NTZ"
 
       - name: dropoff_datetime
         description: "Datetime when the trip ended"
         tests:
           - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: "'2024-01-01'::TIMESTAMP_NTZ"
+              max_value: "'2027-01-01'::TIMESTAMP_NTZ"
+
+      - name: trip_duration_min
+        description: "Trip duration in minutes"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                column_name: trip_duration_min
+                min_value: 0
+                max_value: 1440
+
+      - name: pickup_hour
+        description: "Hour of the day when the trip started (0-23)"
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]
 
   - name: fct__daily_summary
     description: "Daily KPIs and revenue aggregation"
