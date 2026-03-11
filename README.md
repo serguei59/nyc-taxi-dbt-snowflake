@@ -63,7 +63,7 @@ Infrastructure is declared in Terraform and applied automatically on every push.
 
 | Concern | Technology |
 |---|---|
-| Data warehouse | Snowflake Enterprise |
+| Data warehouse | Snowflake Standard |
 | Transformation | dbt-core 1.10.13 · dbt-snowflake 1.10.2 |
 | Infrastructure as Code | Terraform 1.10.2 · snowflake provider 2.10.1 |
 | ETL | Python 3.11 · pandas · snowflake-connector-python |
